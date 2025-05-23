@@ -1,0 +1,550 @@
+                                                                                                                                                                 2 ✘  at 15:25:01 ─╮
+╰─ pnpm build                                                                                                                                                                                                                                                         ─╯
+
+> react-filter-pilot-playground@0.0.0 build /Users/matthewngo/Documents/dev/projects/react-filter-pilot/playground
+> tsc && vite build
+
+src/examples/BasicTaskList.tsx:4:3 - error TS2724: '"react-filter-pilot"' has no exported member named 'FilterConfig'. Did you mean 'FilterConfigItem'?
+
+4   FilterConfig,
+    ~~~~~~~~~~~~
+
+src/examples/BasicTaskList.tsx:5:3 - error TS2305: Module '"react-filter-pilot"' has no exported member 'FetchConfig'.
+
+5   FetchConfig,
+    ~~~~~~~~~~~
+
+src/examples/BasicTaskList.tsx:9:3 - error TS2305: Module '"react-filter-pilot"' has no exported member 'OptionType'.
+
+9   OptionType,
+    ~~~~~~~~~~
+
+src/examples/BasicTaskList.tsx:102:11 - error TS2707: Generic type 'FetchFnParams<TFilterValues>' requires between 0 and 1 type arguments.
+
+102   params: FetchFnParams<TaskFilters, TaskSortField>
+              ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+src/examples/BasicTaskList.tsx:214:17 - error TS6133: 'currentState' is declared but its value is never read.
+
+214       enabled: (currentState) => {
+                    ~~~~~~~~~~~~
+
+src/examples/BasicTaskList.tsx:214:17 - error TS7006: Parameter 'currentState' implicitly has an 'any' type.
+
+214       enabled: (currentState) => {
+                    ~~~~~~~~~~~~
+
+src/examples/BasicTaskList.tsx:234:30 - error TS2315: Type 'SortConfig' is not generic.
+
+234   const sortConfig = useMemo<SortConfig<TaskSortField>>(
+                                 ~~~~~~~~~~~~~~~~~~~~~~~~~
+
+src/examples/BasicTaskList.tsx:244:5 - error TS2339: Property 'clearFilters' does not exist on type 'FilterPilotReturn<Task, TaskFilters>'.
+
+244     clearFilters,
+        ~~~~~~~~~~~~
+
+src/examples/BasicTaskList.tsx:252:22 - error TS2558: Expected 0-2 type arguments, but got 3.
+
+252   } = useFilterPilot<Task, TaskFilters, TaskSortField>({
+                         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+src/examples/BasicTaskList.tsx:305:26 - error TS2339: Property 'titleSearch' does not exist on type 'InferFilterValues<TaskFilters>'.
+
+305           value={filters.titleSearch || ''}
+                             ~~~~~~~~~~~
+
+src/examples/BasicTaskList.tsx:306:43 - error TS2345: Argument of type '"titleSearch"' is not assignable to parameter of type 'never'.
+
+306           onChange={(e) => setFilterValue('titleSearch', e.target.value)}
+                                              ~~~~~~~~~~~~~
+
+src/examples/BasicTaskList.tsx:312:28 - error TS2339: Property 'status' does not exist on type 'InferFilterValues<TaskFilters>'.
+
+312             value={filters.status || ''}
+                               ~~~~~~
+
+src/examples/BasicTaskList.tsx:314:30 - error TS2345: Argument of type '"status"' is not assignable to parameter of type 'never'.
+
+314               setFilterValue('status', (e.target.value as Task['status']) || undefined)
+                                 ~~~~~~~~
+
+src/examples/BasicTaskList.tsx:319:38 - error TS7006: Parameter 'opt' implicitly has an 'any' type.
+
+319             {statusCfg.options?.map((opt) => (
+                                         ~~~
+
+src/examples/BasicTaskList.tsx:329:28 - error TS2339: Property 'priority' does not exist on type 'InferFilterValues<TaskFilters>'.
+
+329             value={filters.priority || ''}
+                               ~~~~~~~~
+
+src/examples/BasicTaskList.tsx:331:30 - error TS2345: Argument of type '"priority"' is not assignable to parameter of type 'never'.
+
+331               setFilterValue('priority', (e.target.value as Task['priority']) || undefined)
+                                 ~~~~~~~~~~
+
+src/examples/BasicTaskList.tsx:336:40 - error TS7006: Parameter 'opt' implicitly has an 'any' type.
+
+336             {priorityCfg.options?.map((opt) => (
+                                           ~~~
+
+src/examples/BasicTaskList.tsx:357:35 - error TS2339: Property 'toggleSort' does not exist on type 'SortState & SortActions'.
+
+357               onClick={() => sort.toggleSort(sField.key)}
+                                      ~~~~~~~~~~
+
+src/examples/BasicTaskList.tsx:401:35 - error TS2339: Property 'goToFirstPage' does not exist on type 'PaginationState & PaginationActions'.
+
+401               onClick={pagination.goToFirstPage}
+                                      ~~~~~~~~~~~~~
+
+src/examples/BasicTaskList.tsx:402:37 - error TS2339: Property 'hasPreviousPage' does not exist on type 'PaginationState & PaginationActions'.
+
+402               disabled={!pagination.hasPreviousPage}
+                                        ~~~~~~~~~~~~~~~
+
+src/examples/BasicTaskList.tsx:408:35 - error TS2339: Property 'goToPreviousPage' does not exist on type 'PaginationState & PaginationActions'.
+
+408               onClick={pagination.goToPreviousPage}
+                                      ~~~~~~~~~~~~~~~~
+
+src/examples/BasicTaskList.tsx:409:37 - error TS2339: Property 'hasPreviousPage' does not exist on type 'PaginationState & PaginationActions'.
+
+409               disabled={!pagination.hasPreviousPage}
+                                        ~~~~~~~~~~~~~~~
+
+src/examples/BasicTaskList.tsx:420:35 - error TS2551: Property 'goToNextPage' does not exist on type 'PaginationState & PaginationActions'. Did you mean 'goToPage'?
+
+420               onClick={pagination.goToNextPage}
+                                      ~~~~~~~~~~~~
+
+  ../src/types/index.ts:108:3
+    108   goToPage: (page: number) => void;
+          ~~~~~~~~
+    'goToPage' is declared here.
+
+src/examples/BasicTaskList.tsx:421:37 - error TS2551: Property 'hasNextPage' does not exist on type 'PaginationState & PaginationActions'. Did you mean 'nextPage'?
+
+421               disabled={!pagination.hasNextPage}
+                                        ~~~~~~~~~~~
+
+  ../src/types/index.ts:112:3
+    112   nextPage: () => void;
+          ~~~~~~~~
+    'nextPage' is declared here.
+
+src/examples/BasicTaskList.tsx:427:35 - error TS2551: Property 'goToLastPage' does not exist on type 'PaginationState & PaginationActions'. Did you mean 'goToPage'?
+
+427               onClick={pagination.goToLastPage}
+                                      ~~~~~~~~~~~~
+
+  ../src/types/index.ts:108:3
+    108   goToPage: (page: number) => void;
+          ~~~~~~~~
+    'goToPage' is declared here.
+
+src/examples/BasicTaskList.tsx:428:37 - error TS2551: Property 'hasNextPage' does not exist on type 'PaginationState & PaginationActions'. Did you mean 'nextPage'?
+
+428               disabled={!pagination.hasNextPage}
+                                        ~~~~~~~~~~~
+
+  ../src/types/index.ts:112:3
+    112   nextPage: () => void;
+          ~~~~~~~~
+    'nextPage' is declared here.
+
+src/examples/BasicTaskList.tsx:447:16 - error TS18048: 'pagination.pageSizeOptions' is possibly 'undefined'.
+
+447               {pagination.pageSizeOptions.map((size) => (
+                   ~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+src/examples/SimpleTaskList.tsx:4:3 - error TS2724: '"react-filter-pilot"' has no exported member named 'FilterConfig'. Did you mean 'FilterConfigItem'?
+
+4   FilterConfig,
+    ~~~~~~~~~~~~
+
+src/examples/SimpleTaskList.tsx:5:3 - error TS2305: Module '"react-filter-pilot"' has no exported member 'FetchConfig'.
+
+5   FetchConfig,
+    ~~~~~~~~~~~
+
+src/examples/SimpleTaskList.tsx:9:3 - error TS2305: Module '"react-filter-pilot"' has no exported member 'OptionType'.
+
+9   OptionType,
+    ~~~~~~~~~~
+
+src/examples/SimpleTaskList.tsx:84:45 - error TS2707: Generic type 'FetchFnParams<TFilterValues>' requires between 0 and 1 type arguments.
+
+84 const fetchTasksClientSide = async (params: FetchFnParams<TaskFilters, TaskSortField>) => {
+                                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+src/examples/SimpleTaskList.tsx:199:30 - error TS2315: Type 'SortConfig' is not generic.
+
+199   const sortConfig = useMemo<SortConfig<TaskSortField>>(
+                                 ~~~~~~~~~~~~~~~~~~~~~~~~~
+
+src/examples/SimpleTaskList.tsx:210:5 - error TS2339: Property 'clearFilters' does not exist on type 'FilterPilotReturn<Task, TaskFilters>'.
+
+210     clearFilters,
+        ~~~~~~~~~~~~
+
+src/examples/SimpleTaskList.tsx:218:22 - error TS2558: Expected 0-2 type arguments, but got 3.
+
+218   } = useFilterPilot<Task, TaskFilters, TaskSortField>({
+                         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+src/examples/SimpleTaskList.tsx:228:22 - error TS2345: Argument of type '"titleSearch"' is not assignable to parameter of type 'never'.
+
+228       setFilterValue('titleSearch', e.target.value);
+                         ~~~~~~~~~~~~~
+
+src/examples/SimpleTaskList.tsx:235:22 - error TS2345: Argument of type '"status"' is not assignable to parameter of type 'never'.
+
+235       setFilterValue('status', (e.target.value as Task['status']) || undefined);
+                         ~~~~~~~~
+
+src/examples/SimpleTaskList.tsx:242:22 - error TS2345: Argument of type '"priority"' is not assignable to parameter of type 'never'.
+
+242       setFilterValue('priority', (e.target.value as Task['priority']) || undefined);
+                         ~~~~~~~~~~
+
+src/examples/SimpleTaskList.tsx:264:26 - error TS2339: Property 'titleSearch' does not exist on type 'InferFilterValues<TaskFilters>'.
+
+264           value={filters.titleSearch || ''}
+                             ~~~~~~~~~~~
+
+src/examples/SimpleTaskList.tsx:270:26 - error TS2339: Property 'status' does not exist on type 'InferFilterValues<TaskFilters>'.
+
+270           value={filters.status || ''}
+                             ~~~~~~
+
+src/examples/SimpleTaskList.tsx:283:26 - error TS2339: Property 'priority' does not exist on type 'InferFilterValues<TaskFilters>'.
+
+283           value={filters.priority || ''}
+                             ~~~~~~~~
+
+src/examples/SimpleTaskList.tsx:309:35 - error TS2339: Property 'toggleSort' does not exist on type 'SortState & SortActions'.
+
+309               onClick={() => sort.toggleSort(sField.key)}
+                                      ~~~~~~~~~~
+
+src/examples/SimpleTaskList.tsx:348:35 - error TS2339: Property 'goToFirstPage' does not exist on type 'PaginationState & PaginationActions'.
+
+348               onClick={pagination.goToFirstPage}
+                                      ~~~~~~~~~~~~~
+
+src/examples/SimpleTaskList.tsx:349:37 - error TS2339: Property 'hasPreviousPage' does not exist on type 'PaginationState & PaginationActions'.
+
+349               disabled={!pagination.hasPreviousPage}
+                                        ~~~~~~~~~~~~~~~
+
+src/examples/SimpleTaskList.tsx:355:35 - error TS2339: Property 'goToPreviousPage' does not exist on type 'PaginationState & PaginationActions'.
+
+355               onClick={pagination.goToPreviousPage}
+                                      ~~~~~~~~~~~~~~~~
+
+src/examples/SimpleTaskList.tsx:356:37 - error TS2339: Property 'hasPreviousPage' does not exist on type 'PaginationState & PaginationActions'.
+
+356               disabled={!pagination.hasPreviousPage}
+                                        ~~~~~~~~~~~~~~~
+
+src/examples/SimpleTaskList.tsx:367:35 - error TS2551: Property 'goToNextPage' does not exist on type 'PaginationState & PaginationActions'. Did you mean 'goToPage'?
+
+367               onClick={pagination.goToNextPage}
+                                      ~~~~~~~~~~~~
+
+  ../src/types/index.ts:108:3
+    108   goToPage: (page: number) => void;
+          ~~~~~~~~
+    'goToPage' is declared here.
+
+src/examples/SimpleTaskList.tsx:368:37 - error TS2551: Property 'hasNextPage' does not exist on type 'PaginationState & PaginationActions'. Did you mean 'nextPage'?
+
+368               disabled={!pagination.hasNextPage}
+                                        ~~~~~~~~~~~
+
+  ../src/types/index.ts:112:3
+    112   nextPage: () => void;
+          ~~~~~~~~
+    'nextPage' is declared here.
+
+src/examples/SimpleTaskList.tsx:374:35 - error TS2551: Property 'goToLastPage' does not exist on type 'PaginationState & PaginationActions'. Did you mean 'goToPage'?
+
+374               onClick={pagination.goToLastPage}
+                                      ~~~~~~~~~~~~
+
+  ../src/types/index.ts:108:3
+    108   goToPage: (page: number) => void;
+          ~~~~~~~~
+    'goToPage' is declared here.
+
+src/examples/SimpleTaskList.tsx:375:37 - error TS2551: Property 'hasNextPage' does not exist on type 'PaginationState & PaginationActions'. Did you mean 'nextPage'?
+
+375               disabled={!pagination.hasNextPage}
+                                        ~~~~~~~~~~~
+
+  ../src/types/index.ts:112:3
+    112   nextPage: () => void;
+          ~~~~~~~~
+    'nextPage' is declared here.
+
+src/examples/SimpleTaskList.tsx:394:16 - error TS18048: 'pagination.pageSizeOptions' is possibly 'undefined'.
+
+394               {pagination.pageSizeOptions.map((size) => (
+                   ~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+../src/hooks/useFilterPilot.ts:144:56 - error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'SetFilterValueAction<InferFilterValues<TFilterConfigs>[TFilterConfigs[number]["name"]]>'.
+
+144           setFilterValue(name as keyof typeof filters, value);
+                                                           ~~~~~
+
+../src/hooks/useFilterPilot.ts:172:26 - error TS2345: Argument of type 'string | null' is not assignable to parameter of type 'string'.
+  Type 'null' is not assignable to type 'string'.
+
+172             sort.setSort(newSortFromUrl.field, newSortFromUrl.direction);
+                             ~~~~~~~~~~~~~~~~~~~~
+
+../src/hooks/useFilterPilot.ts:189:43 - error TS2304: Cannot find name 'PaginationActions'.
+
+189     currentPagination?: PaginationState & PaginationActions,
+                                              ~~~~~~~~~~~~~~~~~
+
+../src/hooks/useFilterPilot.ts:190:31 - error TS2304: Cannot find name 'SortActions'.
+
+190     currentSort?: SortState & SortActions
+                                  ~~~~~~~~~~~
+
+../src/hooks/useFilterPilot.ts:261:5 - error TS2322: Type '<K extends TFilterConfigs[number]["name"]>(name: K, valueOrFn: SetFilterValueAction<InferFilterValues<TFilterConfigs>[K]>) => void' is not assignable to type '<TName extends InferFilterValues<TFilterConfigs>[TFilterConfigs[number]["name"]]>(name: Extract<TFilterConfigs[number]["name"], string>, valueOrFn: SetFilterValueAction<...>) => void'.
+  Types of parameters 'valueOrFn' and 'valueOrFn' are incompatible.
+    Type 'SetFilterValueAction<TName>' is not assignable to type 'SetFilterValueAction<InferFilterValues<TFilterConfigs>[Extract<TFilterConfigs[number]["name"], string>]>'.
+      Type '(prevValue: TName) => TName' is not assignable to type 'SetFilterValueAction<InferFilterValues<TFilterConfigs>[Extract<TFilterConfigs[number]["name"], string>]>'.
+        Type '(prevValue: TName) => TName' is not assignable to type '(prevValue: InferFilterValues<TFilterConfigs>[Extract<TFilterConfigs[number]["name"], string>]) => InferFilterValues<TFilterConfigs>[Extract<...>]'.
+          Types of parameters 'prevValue' and 'prevValue' are incompatible.
+            Type 'TFilterConfigs[number] extends FilterConfigItem<infer TValue> ? TValue : never' is not assignable to type 'TName'.
+              'TFilterConfigs[number] extends FilterConfigItem<infer TValue> ? TValue : never' is assignable to the constraint of type 'TName', but 'TName' could be instantiated with a different subtype of constraint 'unknown'.
+                Type 'unknown' is not assignable to type 'TName'.
+                  'unknown' is assignable to the constraint of type 'TName', but 'TName' could be instantiated with a different subtype of constraint 'unknown'.
+
+261     setFilterValue,
+        ~~~~~~~~~~~~~~
+
+  ../src/types/index.ts:428:3
+    428   setFilterValue: <
+          ~~~~~~~~~~~~~~
+    The expected type comes from property 'setFilterValue' which is declared here on type 'FilterPilotReturn<TData, TFilterConfigs>'
+
+../src/hooks/useFilterPilot.ts:278:5 - error TS2322: Type '() => Promise<FetchFnResult<TData> | undefined>' is not assignable to type '() => Promise<FetchFnResult<TData>>'.
+  Type 'Promise<FetchFnResult<TData> | undefined>' is not assignable to type 'Promise<FetchFnResult<TData>>'.
+    Type 'FetchFnResult<TData> | undefined' is not assignable to type 'FetchFnResult<TData>'.
+      Type 'undefined' is not assignable to type 'FetchFnResult<TData>'.
+
+278     refetch,
+        ~~~~~~~
+
+  ../src/types/index.ts:457:3
+    457   refetch: () => Promise<FetchFnResult<TData>>;
+          ~~~~~~~
+    The expected type comes from property 'refetch' which is declared here on type 'FilterPilotReturn<TData, TFilterConfigs>'
+
+../src/hooks/useFilterState.ts:39:9 - error TS2322: Type 'any' is not assignable to type 'never'.
+
+39         acc[name] = config.defaultValue;
+           ~~~~~~~~~
+
+../src/hooks/useFilterState.ts:65:17 - error TS2322: Type 'string' is not assignable to type 'Extract<TFilterConfigs[number]["name"], string>'.
+
+65               { name: config.name, value, debounced: true }
+                   ~~~~
+
+../src/hooks/useFilterState.ts:97:17 - error TS2352: Conversion of type 'K' to type 'Extract<TFilterConfigs[number]["name"], string>' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Type 'TFilterConfigs[number]["name"]' is not comparable to type 'Extract<TFilterConfigs[number]["name"], string>'.
+    Type 'string' is not comparable to type 'Extract<TFilterConfigs[number]["name"], string>'.
+
+97           name: name as Extract<keyof InferFilterValues<TFilterConfigs>, string>,
+                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+../src/hooks/useFilterState.ts:132:13 - error TS7053: Element implicitly has an 'any' type because expression of type 'string' can't be used to index type 'InferFilterValues<TFilterConfigs>'.
+  No index signature with a parameter of type 'string' was found on type 'InferFilterValues<TFilterConfigs>'.
+
+132             newFilters[config.name] = 'defaultValue' in config ? config.defaultValue : undefined;
+                ~~~~~~~~~~~~~~~~~~~~~~~
+
+../src/hooks/useFilterState.ts:155:13 - error TS7053: Element implicitly has an 'any' type because expression of type 'string' can't be used to index type 'InferFilterValues<TFilterConfigs>'.
+  No index signature with a parameter of type 'string' was found on type 'InferFilterValues<TFilterConfigs>'.
+
+155             newFilters[config.name] = config.defaultValue;
+                ~~~~~~~~~~~~~~~~~~~~~~~
+
+../src/hooks/useFilterState.ts:159:11 - error TS7053: Element implicitly has an 'any' type because expression of type 'string' can't be used to index type 'InferFilterValues<TFilterConfigs>'.
+  No index signature with a parameter of type 'string' was found on type 'InferFilterValues<TFilterConfigs>'.
+
+159           newFilters[config.name] = 'defaultValue' in config ? config.defaultValue : undefined;
+              ~~~~~~~~~~~~~~~~~~~~~~~
+
+../src/hooks/useFilterState.ts:206:9 - error TS2322: Type 'string | false' is not assignable to type 'string | undefined'.
+  Type 'boolean' is not assignable to type 'string'.
+
+206         newErrors[name] = result;
+            ~~~~~~~~~~~~~~~
+
+../src/hooks/usePaginationHandler.ts:4:3 - error TS6133: 'PaginationState' is declared but its value is never read.
+
+4   PaginationState,
+    ~~~~~~~~~~~~~~~
+
+../src/hooks/usePaginationHandler.ts:41:49 - error TS18048: 'pageSize' is possibly 'undefined'.
+
+41     return Math.max(1, Math.ceil(totalRecords / pageSize));
+                                                   ~~~~~~~~
+
+../src/hooks/usePaginationHandler.ts:45:23 - error TS18048: 'page' is possibly 'undefined'.
+
+45   const canNextPage = page < totalPages;
+                         ~~~~
+
+../src/hooks/usePaginationHandler.ts:46:23 - error TS18048: 'page' is possibly 'undefined'.
+
+46   const canPrevPage = page > 1;
+                         ~~~~
+
+../src/hooks/usePaginationHandler.ts:60:11 - error TS2322: Type 'number | undefined' is not assignable to type 'number'.
+  Type 'undefined' is not assignable to type 'number'.
+
+60           pageSize,
+             ~~~~~~~~
+
+  ../src/types/index.ts:94:3
+    94   pageSize: number;
+         ~~~~~~~~
+    The expected type comes from property 'pageSize' which is declared here on type 'PaginationState'
+
+../src/hooks/usePaginationHandler.ts:93:16 - error TS18048: 'page' is possibly 'undefined'.
+
+93       goToPage(page + 1);
+                  ~~~~
+
+../src/hooks/usePaginationHandler.ts:100:16 - error TS18048: 'page' is possibly 'undefined'.
+
+100       goToPage(page - 1);
+                   ~~~~
+
+../src/hooks/usePaginationHandler.ts:110:59 - error TS18048: 'pageSize' is possibly 'undefined'.
+
+110       const newTotalPages = Math.max(1, Math.ceil(total / pageSize));
+                                                              ~~~~~~~~
+
+../src/hooks/usePaginationHandler.ts:113:11 - error TS18048: 'page' is possibly 'undefined'.
+
+113       if (page > newTotalPages) {
+              ~~~~
+
+../src/hooks/usePaginationHandler.ts:120:11 - error TS2322: Type 'number | undefined' is not assignable to type 'number'.
+  Type 'undefined' is not assignable to type 'number'.
+
+120           page: page > newTotalPages ? newTotalPages : page,
+              ~~~~
+
+  ../src/types/index.ts:92:3
+    92   page: number;
+         ~~~~
+    The expected type comes from property 'page' which is declared here on type 'PaginationState'
+
+../src/hooks/usePaginationHandler.ts:120:17 - error TS18048: 'page' is possibly 'undefined'.
+
+120           page: page > newTotalPages ? newTotalPages : page,
+                    ~~~~
+
+../src/hooks/usePaginationHandler.ts:121:11 - error TS2322: Type 'number | undefined' is not assignable to type 'number'.
+  Type 'undefined' is not assignable to type 'number'.
+
+121           pageSize,
+              ~~~~~~~~
+
+  ../src/types/index.ts:94:3
+    94   pageSize: number;
+         ~~~~~~~~
+    The expected type comes from property 'pageSize' which is declared here on type 'PaginationState'
+
+../src/hooks/usePaginationHandler.ts:131:5 - error TS2322: Type 'number | undefined' is not assignable to type 'number'.
+  Type 'undefined' is not assignable to type 'number'.
+
+131     page,
+        ~~~~
+
+  ../src/types/index.ts:92:3
+    92   page: number;
+         ~~~~
+    The expected type comes from property 'page' which is declared here on type 'UsePaginationHandlerReturn'
+
+../src/hooks/usePaginationHandler.ts:132:5 - error TS2322: Type 'number | undefined' is not assignable to type 'number'.
+  Type 'undefined' is not assignable to type 'number'.
+
+132     pageSize,
+        ~~~~~~~~
+
+  ../src/types/index.ts:94:3
+    94   pageSize: number;
+         ~~~~~~~~
+    The expected type comes from property 'pageSize' which is declared here on type 'UsePaginationHandlerReturn'
+
+../src/hooks/useSortHandler.ts:3:3 - error TS6133: 'Maybe' is declared but its value is never read.
+
+3   Maybe,
+    ~~~~~
+
+../src/hooks/useSortHandler.ts:4:3 - error TS6133: 'SortConfig' is declared but its value is never read.
+
+4   SortConfig,
+    ~~~~~~~~~~
+
+../src/hooks/useUrlStateSync.ts:8:3 - error TS6133: 'UrlHandler' is declared but its value is never read.
+
+8   UrlHandler,
+    ~~~~~~~~~~
+
+../src/hooks/useUrlStateSync.ts:210:15 - error TS2322: Type 'TFilterConfigs[number] extends FilterConfigItem<infer TValue> ? TValue : never' is not assignable to type 'Maybe<string | string[]>'.
+  Type 'unknown' is not assignable to type 'Maybe<string | string[]>'.
+    Type 'TFilterConfigs[number] extends FilterConfigItem<infer TValue> ? TValue : never' is not assignable to type 'string[]'.
+      Type 'unknown' is not assignable to type 'string[]'.
+
+210           let urlValue: Maybe<string | string[]> = filterValue;
+                  ~~~~~~~~
+
+../src/url-handlers/useNextJsUrlHandler.ts:93:23 - error TS2345: Argument of type '([key, value]: [any, any]) => void' is not assignable to parameter of type '(value: unknown, index: number, array: unknown[]) => void'.
+  Types of parameters '__0' and 'value' are incompatible.
+    Type 'unknown' is not assignable to type '[any, any]'.
+
+93       entries.forEach(([key, value]) => {
+                         ~~~~~~~~~~~~~~~~~~~
+
+../src/url-handlers/useNextJsUrlHandler.ts:160:11 - error TS2322: Type 'unknown' is not assignable to type 'Maybe<string | string[]>'.
+
+160           state.filters![key] = value;
+              ~~~~~~~~~~~~~~~~~~~
+
+../src/url-handlers/useNextJsUrlHandler.ts:322:13 - error TS6133: 'routerOptions' is declared but its value is never read.
+
+322       const routerOptions = {
+                ~~~~~~~~~~~~~
+
+../src/url-handlers/useReactRouterDomUrlHandler.ts:52:21 - error TS2345: Argument of type '([key, value]: [any, any]) => void' is not assignable to parameter of type '(value: unknown, index: number, array: unknown[]) => void'.
+  Types of parameters '__0' and 'value' are incompatible.
+    Type 'unknown' is not assignable to type '[any, any]'.
+
+52     entries.forEach(([key, value]) => {
+                       ~~~~~~~~~~~~~~~~~~~
+
+
+Found 85 errors in 9 files.
+
+Errors  Files
+    27  src/examples/BasicTaskList.tsx:4
+    23  src/examples/SimpleTaskList.tsx:4
+     6  ../src/hooks/useFilterPilot.ts:144
+     7  ../src/hooks/useFilterState.ts:39
+    14  ../src/hooks/usePaginationHandler.ts:4
+     2  ../src/hooks/useSortHandler.ts:3
+     2  ../src/hooks/useUrlStateSync.ts:8
+     3  ../src/url-handlers/useNextJsUrlHandler.ts:93
+     1  ../src/url-handlers/useReactRouterDomUrlHandler.ts:52
