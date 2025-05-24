@@ -255,7 +255,6 @@ export function useFilterPilotInfinite<TData, TFilters = Record<string, any>>(
           pages: data.pages.map((page) => fetchConfig.select!(page)),
         })
       : undefined,
-    placeholderData: fetchConfig.placeholderData,
     retry: fetchConfig.retry,
     retryDelay: fetchConfig.retryDelay,
     networkMode: fetchConfig.networkMode,

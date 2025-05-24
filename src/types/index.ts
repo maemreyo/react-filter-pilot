@@ -80,13 +80,12 @@ export interface FetchConfig<TData, TFilters = Record<string, any>> {
   select?: (data: FetchResult<TData>) => FetchResult<TData>;
   placeholderData?:
     | FetchResult<TData>
-    | ((previousData?: FetchResult<TData>, query?: any) => FetchResult<TData>);
+    | ((previousData?: FetchResult<TData>) => FetchResult<TData>);
   initialData?: FetchResult<TData> | (() => FetchResult<TData>);
   initialDataUpdatedAt?: number | (() => number | undefined);
   retry?: boolean | number | ((failureCount: number, error: Error) => boolean);
   retryDelay?: number | ((attemptIndex: number, error: Error) => number);
   networkMode?: 'online' | 'always' | 'offlineFirst';
-  keepPreviousData?: boolean;
   suspense?: boolean;
   useErrorBoundary?: boolean | ((error: Error) => boolean);
   meta?: Record<string, unknown>;

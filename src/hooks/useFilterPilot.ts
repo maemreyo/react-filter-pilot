@@ -194,7 +194,7 @@ export function useFilterPilot<TData, TFilters = Record<string, any>>(
   }, [pagination, sort, filterConfigs, fetchConfig.fetchFn]);
 
   // Query
-  const query = useQuery<FetchResult<TData>, Error>({
+  const query = useQuery<FetchResult<TData>, Error, FetchResult<TData>, unknown[]>({
     queryKey,
     queryFn: fetchData,
     enabled: fetchConfig.enabled !== false,
@@ -210,7 +210,6 @@ export function useFilterPilot<TData, TFilters = Record<string, any>>(
     retry: fetchConfig.retry,
     retryDelay: fetchConfig.retryDelay,
     networkMode: fetchConfig.networkMode,
-    keepPreviousData: fetchConfig.keepPreviousData,
     suspense: fetchConfig.suspense,
     useErrorBoundary: fetchConfig.useErrorBoundary,
     meta: fetchConfig.meta,
@@ -462,7 +461,7 @@ export function useFilterPilot<TData, TFilters = Record<string, any>>(
     data: query.data?.data,
     isLoading: query.isLoading,
     isError: query.isError,
-    error: query.error,
+    error: query.error || undefined,
     isFetching: query.isFetching,
     refetch: query.refetch,
 

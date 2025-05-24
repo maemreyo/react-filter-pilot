@@ -1,6 +1,11 @@
 import React from 'react';
-import { useFilterPilot, useFilterMutation } from 'react-filter-pilot';
-import { toast } from 'react-hot-toast';
+import { useFilterPilot, useFilterMutation } from '../index';
+
+// Simple toast implementation for example
+const toast = {
+  success: (message: string) => console.log('✅', message),
+  error: (message: string) => console.error('❌', message),
+};
 
 interface Product {
   id: string;
@@ -72,9 +77,11 @@ export function ProductManagement() {
     },
     // Optimistically update the UI
     optimisticUpdate: ({ id, ...updates }) => {
-      return filterPilot.data?.map(product =>
-        product.id === id ? { ...product, ...updates } : product
-      ) || [];
+      return (
+        filterPilot.data?.map((product) =>
+          product.id === id ? { ...product, ...updates } : product
+        ) || []
+      );
     },
     onSuccess: () => {
       toast.success('Product updated successfully!');
@@ -93,7 +100,7 @@ export function ProductManagement() {
     },
     // Optimistically remove from list
     optimisticUpdate: (productId) => {
-      return filterPilot.data?.filter(product => product.id !== productId) || [];
+      return filterPilot.data?.filter((product) => product.id !== productId) || [];
     },
     onSuccess: () => {
       toast.success('Product deleted successfully!');
@@ -113,9 +120,11 @@ export function ProductManagement() {
       return response.json();
     },
     optimisticUpdate: ({ ids, changes }) => {
-      return filterPilot.data?.map(product =>
-        ids.includes(product.id) ? { ...product, ...changes } : product
-      ) || [];
+      return (
+        filterPilot.data?.map((product) =>
+          ids.includes(product.id) ? { ...product, ...changes } : product
+        ) || []
+      );
     },
     onSuccess: (data) => {
       toast.success(`${data.updated} products updated successfully!`);
@@ -125,26 +134,26 @@ export function ProductManagement() {
   return (
     <div>
       {/* Filters */}
-      <div className="filters">
+      <div className='filters'>
         <input
-          type="text"
-          placeholder="Search products..."
+          type='text'
+          placeholder='Search products...'
           value={filterPilot.filters.search}
           onChange={(e) => filterPilot.setFilterValue('search', e.target.value)}
         />
-        
+
         <select
           value={filterPilot.filters.category}
           onChange={(e) => filterPilot.setFilterValue('category', e.target.value)}
         >
-          <option value="all">All Categories</option>
-          <option value="electronics">Electronics</option>
-          <option value="clothing">Clothing</option>
+          <option value='all'>All Categories</option>
+          <option value='electronics'>Electronics</option>
+          <option value='clothing'>Clothing</option>
         </select>
-        
+
         <label>
           <input
-            type="checkbox"
+            type='checkbox'
             checked={filterPilot.filters.inStock}
             onChange={(e) => filterPilot.setFilterValue('inStock', e.target.checked)}
           />
@@ -164,34 +173,36 @@ export function ProductManagement() {
             });
           }
         }}
-        disabled={createMutation.isLoading}
+        disabled={createMutation.isPending}
       >
-        {createMutation.isLoading ? 'Creating...' : 'Add Product'}
+        {createMutation.isPending ? 'Creating...' : 'Add Product'}
       </button>
 
       {/* Product list */}
       {filterPilot.isLoading ? (
         <div>Loading...</div>
       ) : (
-        <div className="product-list">
+        <div className='product-list'>
           {filterPilot.data?.map((product) => (
-            <div key={product.id} className="product-item">
+            <div key={product.id} className='product-item'>
               <h3>{product.name}</h3>
               <p>${product.price.toFixed(2)}</p>
               <p>Status: {product.inStock ? 'In Stock' : 'Out of Stock'}</p>
-              
-              <div className="actions">
+
+              <div className='actions'>
                 {/* Toggle stock status */}
                 <button
-                  onClick={() => updateMutation.mutate({
-                    id: product.id,
-                    inStock: !product.inStock,
-                  })}
-                  disabled={updateMutation.isLoading}
+                  onClick={() =>
+                    updateMutation.mutate({
+                      id: product.id,
+                      inStock: !product.inStock,
+                    })
+                  }
+                  disabled={updateMutation.isPending}
                 >
                   {product.inStock ? 'Mark Out of Stock' : 'Mark In Stock'}
                 </button>
-                
+
                 {/* Update price */}
                 <button
                   onClick={() => {
@@ -203,11 +214,11 @@ export function ProductManagement() {
                       });
                     }
                   }}
-                  disabled={updateMutation.isLoading}
+                  disabled={updateMutation.isPending}
                 >
                   Update Price
                 </button>
-                
+
                 {/* Delete product */}
                 <button
                   onClick={() => {
@@ -215,7 +226,7 @@ export function ProductManagement() {
                       deleteMutation.mutate(product.id);
                     }
                   }}
-                  disabled={deleteMutation.isLoading}
+                  disabled={deleteMutation.isPending}
                 >
                   Delete
                 </button>
@@ -227,13 +238,12 @@ export function ProductManagement() {
 
       {/* Bulk actions */}
       {filterPilot.data && filterPilot.data.length > 0 && (
-        <div className="bulk-actions">
+        <div className='bulk-actions'>
           <button
             onClick={() => {
-              const outOfStockIds = filterPilot.data
-                ?.filter(p => !p.inStock)
-                .map(p => p.id) || [];
-              
+              const outOfStockIds =
+                filterPilot.data?.filter((p) => !p.inStock).map((p) => p.id) || [];
+
               if (outOfStockIds.length > 0) {
                 bulkUpdateMutation.mutate({
                   ids: outOfStockIds,
@@ -241,7 +251,7 @@ export function ProductManagement() {
                 });
               }
             }}
-            disabled={bulkUpdateMutation.isLoading}
+            disabled={bulkUpdateMutation.isPending}
           >
             Mark All Out of Stock as In Stock
           </button>
