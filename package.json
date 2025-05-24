@@ -45,7 +45,7 @@
     "dev": "rollup -c -w",
     "build": "pnpm run clean && pnpm run build:rollup && pnpm run build:types",
     "build:rollup": "rollup -c",
-    "build:types": "tsc --emitDeclarationOnly --declaration --declarationMap",
+    "build:types": "tsc -p tsconfig.build.json",
     "clean": "rimraf dist",
     "test": "jest",
     "test:watch": "jest --watch",

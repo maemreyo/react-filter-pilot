@@ -11,6 +11,16 @@ const packageJson = require('./package.json');
 
 const input = 'src/index.ts';
 
+// Explicitly exclude test-utils from the build
+const external = [
+  'react',
+  'react-dom',
+  '@tanstack/react-query',
+  'react-router-dom',
+  'next/router',
+  'next/navigation',
+];
+
 export default defineConfig([
   // CommonJS and ESM builds
   {
@@ -53,6 +63,7 @@ export default defineConfig([
           'src/test-utils/**',
         ],
         declaration: false, // We'll handle this separately
+        jsx: 'react',
       }),
       
       // Minify the output
@@ -65,14 +76,7 @@ export default defineConfig([
         },
       }),
     ],
-    external: [
-      'react',
-      'react-dom',
-      '@tanstack/react-query',
-      'react-router-dom',
-      'next/router',
-      'next/navigation',
-    ],
+    external,
   },
   
   // Type definitions build

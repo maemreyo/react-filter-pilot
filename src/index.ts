@@ -46,15 +46,8 @@ export {
   mergeFilters,
 } from './utils';
 
-// Test utilities (only export in development/test environments)
-export {
-  createMockFilterPilot,
-  createMockUrlHandler,
-  createMockPresets,
-  waitForDebounce,
-  createMockFetchResponse,
-  createTestWrapper,
-} from './test-utils';
+// Test utilities are not exported in the production build
+// They are available in the source code for testing purposes only
 
 // TanStack Query compatibility utilities
 export {
