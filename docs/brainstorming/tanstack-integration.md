@@ -44,7 +44,7 @@ const { data } = useFilterPilot({
     fetchFn: fetchProducts,
     select: (result) => ({
       ...result,
-      data: result.data.map(product => ({
+      data: result.data.map((product) => ({
         ...product,
         displayPrice: `$${product.price.toFixed(2)}`,
       })),
@@ -121,7 +121,7 @@ function ProductList() {
 
   return (
     <div>
-      {filterPilot.data?.map(product => (
+      {filterPilot.data?.map((product) => (
         <ProductCard
           key={product.id}
           product={product}
@@ -143,11 +143,11 @@ const updateMutation = useFilterMutation({
   },
   optimisticUpdate: (variables) => {
     // Return updated data array for optimistic UI
-    return filterPilot.data?.map(product =>
-      product.id === variables.id
-        ? { ...product, name: variables.name }
-        : product
-    ) || [];
+    return (
+      filterPilot.data?.map((product) =>
+        product.id === variables.id ? { ...product, name: variables.name } : product
+      ) || []
+    );
   },
 });
 ```
@@ -160,42 +160,33 @@ const updateMutation = useFilterMutation({
 import { useFilterPilotInfinite } from 'react-filter-pilot';
 
 function InfiniteProductList() {
-  const {
-    data,
-    fetchNextPage,
-    hasNextPage,
-    isFetchingNextPage,
-    filters,
-    setFilterValue,
-  } = useFilterPilotInfinite({
-    filterConfigs: [
-      { name: 'search', defaultValue: '', debounceMs: 300 },
-      { name: 'category', defaultValue: 'all' },
-    ],
-    fetchConfig: {
-      fetchFn: async ({ filters, cursor }) => {
-        const response = await api.getProducts({
-          ...filters,
-          cursor,
-          limit: 20,
-        });
-        
-        return {
-          data: response.products,
-          totalRecords: response.total,
-          nextCursor: response.nextCursor,
-        };
+  const { data, fetchNextPage, hasNextPage, isFetchingNextPage, filters, setFilterValue } =
+    useFilterPilotInfinite({
+      filterConfigs: [
+        { name: 'search', defaultValue: '', debounceMs: 300 },
+        { name: 'category', defaultValue: 'all' },
+      ],
+      fetchConfig: {
+        fetchFn: async ({ filters, cursor }) => {
+          const response = await api.getProducts({
+            ...filters,
+            cursor,
+            limit: 20,
+          });
+
+          return {
+            data: response.products,
+            totalRecords: response.total,
+            nextCursor: response.nextCursor,
+          };
+        },
       },
-    },
-  });
+    });
 
   return (
     <div>
       {/* Filters */}
-      <input
-        value={filters.search}
-        onChange={(e) => setFilterValue('search', e.target.value)}
-      />
+      <input value={filters.search} onChange={(e) => setFilterValue('search', e.target.value)} />
 
       {/* Results */}
       {data.map((product) => (
@@ -204,10 +195,7 @@ function InfiniteProductList() {
 
       {/* Load More */}
       {hasNextPage && (
-        <button
-          onClick={() => fetchNextPage()}
-          disabled={isFetchingNextPage}
-        >
+        <button onClick={() => fetchNextPage()} disabled={isFetchingNextPage}>
           {isFetchingNextPage ? 'Loading...' : 'Load More'}
         </button>
       )}
@@ -253,7 +241,9 @@ import { useQueryClient } from '@tanstack/react-query';
 
 function MyComponent() {
   const queryClient = useQueryClient();
-  const filterPilot = useFilterPilot({ /* ... */ });
+  const filterPilot = useFilterPilot({
+    /* ... */
+  });
 
   const handleRefresh = () => {
     // Invalidate specific query
@@ -280,7 +270,7 @@ const createMutation = useMutation({
     queryClient.invalidateQueries({
       queryKey: ['filterPilot', 'products'],
     });
-    
+
     // But keep detail queries
     queryClient.invalidateQueries({
       queryKey: ['filterPilot', 'products'],
@@ -305,12 +295,18 @@ function PaginatedList() {
   const handleNextHover = () => {
     if (pagination.hasNextPage) {
       queryClient.prefetchQuery({
-        queryKey: ['filterPilot', 'filters', filters, 'pagination', 
-          { ...pagination, page: pagination.page + 1 }],
-        queryFn: () => fetchProducts({
+        queryKey: [
+          'filterPilot',
+          'filters',
           filters,
-          pagination: { ...pagination, page: pagination.page + 1 },
-        }),
+          'pagination',
+          { ...pagination, page: pagination.page + 1 },
+        ],
+        queryFn: () =>
+          fetchProducts({
+            filters,
+            pagination: { ...pagination, page: pagination.page + 1 },
+          }),
       });
     }
   };
@@ -330,7 +326,7 @@ const { data } = useFilterPilot({
 // Wrap in Suspense boundary
 <Suspense fallback={<Loading />}>
   <ProductList />
-</Suspense>
+</Suspense>;
 ```
 
 ## Performance Tips
@@ -338,6 +334,7 @@ const { data } = useFilterPilot({
 ### 1. Query Key Structure
 
 The query key is structured for optimal caching:
+
 ```
 [prefix, 'filters', filtersObject, 'pagination', paginationObject, 'sort', sortObject]
 ```

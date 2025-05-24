@@ -210,8 +210,6 @@ export function useFilterPilot<TData, TFilters = Record<string, any>>(
     retry: fetchConfig.retry,
     retryDelay: fetchConfig.retryDelay,
     networkMode: fetchConfig.networkMode,
-    suspense: fetchConfig.suspense,
-    useErrorBoundary: fetchConfig.useErrorBoundary,
     meta: fetchConfig.meta,
     queryKeyHashFn: fetchConfig.queryKeyHashFn,
     structuralSharing: fetchConfig.structuralSharing,

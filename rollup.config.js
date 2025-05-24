@@ -5,21 +5,9 @@ import commonjs from '@rollup/plugin-commonjs';
 import peerDepsExternal from 'rollup-plugin-peer-deps-external';
 import { terser } from 'rollup-plugin-terser';
 import dts from 'rollup-plugin-dts';
-import { createRequire } from 'module';
-const require = createRequire(import.meta.url);
-const packageJson = require('./package.json');
+import packageJson from './package.json' assert { type: 'json' };
 
 const input = 'src/index.ts';
-
-// Explicitly exclude test-utils from the build
-const external = [
-  'react',
-  'react-dom',
-  '@tanstack/react-query',
-  'react-router-dom',
-  'next/router',
-  'next/navigation',
-];
 
 export default defineConfig([
   // CommonJS and ESM builds
@@ -58,12 +46,12 @@ export default defineConfig([
           '**/*.test.tsx',
           '**/*.spec.ts',
           '**/*.spec.tsx',
+          '**/*.example.ts',
           '**/*.example.tsx',
           '**/__tests__/**',
           'src/test-utils/**',
         ],
         declaration: false, // We'll handle this separately
-        jsx: 'react',
       }),
       
       // Minify the output
@@ -76,7 +64,14 @@ export default defineConfig([
         },
       }),
     ],
-    external,
+    external: [
+      'react',
+      'react-dom',
+      '@tanstack/react-query',
+      'react-router-dom',
+      'next/router',
+      'next/navigation',
+    ],
   },
   
   // Type definitions build

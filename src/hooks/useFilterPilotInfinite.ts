@@ -258,8 +258,6 @@ export function useFilterPilotInfinite<TData, TFilters = Record<string, any>>(
     retry: fetchConfig.retry,
     retryDelay: fetchConfig.retryDelay,
     networkMode: fetchConfig.networkMode,
-    suspense: fetchConfig.suspense,
-    useErrorBoundary: fetchConfig.useErrorBoundary,
     meta: fetchConfig.meta,
   });
 

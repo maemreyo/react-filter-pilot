@@ -86,8 +86,6 @@ export interface FetchConfig<TData, TFilters = Record<string, any>> {
   retry?: boolean | number | ((failureCount: number, error: Error) => boolean);
   retryDelay?: number | ((attemptIndex: number, error: Error) => number);
   networkMode?: 'online' | 'always' | 'offlineFirst';
-  suspense?: boolean;
-  useErrorBoundary?: boolean | ((error: Error) => boolean);
   meta?: Record<string, unknown>;
   queryKeyHashFn?: (queryKey: unknown[]) => string;
   structuralSharing?: boolean | ((oldData: unknown, newData: unknown) => unknown);
