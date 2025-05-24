@@ -13,4 +13,15 @@ export default defineConfig({
   server: {
     port: 3000,
   },
+  define: {
+    // Polyfill for process.env needed by Next.js
+    'process.env': {},
+    'process.browser': true,
+    'process.version': '"v16.0.0"',
+    'process': {
+      env: {},
+      browser: true,
+      version: '"v16.0.0"'
+    },
+  },
 });
