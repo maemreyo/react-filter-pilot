@@ -1,13 +1,13 @@
-export type FilterValue = 
-  | string 
-  | number 
-  | boolean 
-  | Date 
+export type FilterValue =
+  | string
+  | number
+  | boolean
+  | Date
   | string[]
   | number[]
   | RangeValue
   | Record<string, any>
-  | null 
+  | null
   | undefined;
 
 export interface RangeValue {
@@ -47,13 +47,15 @@ export interface FetchParams<TFilters = Record<string, any>> {
     page: number;
     pageSize: number;
   };
-  sort?: {
-    field: string;
-    direction: 'asc' | 'desc';
-  } | Array<{
-    field: string;
-    direction: 'asc' | 'desc';
-  }>;
+  sort?:
+    | {
+        field: string;
+        direction: 'asc' | 'desc';
+      }
+    | Array<{
+        field: string;
+        direction: 'asc' | 'desc';
+      }>;
 }
 
 export interface FetchResult<TData> {
@@ -67,11 +69,29 @@ export interface FetchConfig<TData, TFilters = Record<string, any>> {
   queryKey?: string;
   enabled?: boolean;
   staleTime?: number;
-  cacheTime?: number;
+  cacheTime?: number; // gcTime in v5
+  gcTime?: number; // v5 naming
   refetchOnWindowFocus?: boolean;
   refetchInterval?: number;
+  refetchIntervalInBackground?: boolean;
   onSuccess?: (data: FetchResult<TData>) => void;
   onError?: (error: Error) => void;
+  // Additional TanStack Query options
+  select?: (data: FetchResult<TData>) => FetchResult<TData>;
+  placeholderData?:
+    | FetchResult<TData>
+    | ((previousData?: FetchResult<TData>, query?: any) => FetchResult<TData>);
+  initialData?: FetchResult<TData> | (() => FetchResult<TData>);
+  initialDataUpdatedAt?: number | (() => number | undefined);
+  retry?: boolean | number | ((failureCount: number, error: Error) => boolean);
+  retryDelay?: number | ((attemptIndex: number, error: Error) => number);
+  networkMode?: 'online' | 'always' | 'offlineFirst';
+  keepPreviousData?: boolean;
+  suspense?: boolean;
+  useErrorBoundary?: boolean | ((error: Error) => boolean);
+  meta?: Record<string, unknown>;
+  queryKeyHashFn?: (queryKey: unknown[]) => string;
+  structuralSharing?: boolean | ((oldData: unknown, newData: unknown) => unknown);
 }
 
 export interface UrlHandler {
@@ -118,20 +138,20 @@ export interface UseFilterPilotResult<TData, TFilters = Record<string, any>> {
   setFilters: (filters: Partial<TFilters>) => void;
   resetFilters: () => void;
   resetFilter: (name: keyof TFilters) => void;
-  
+
   // Pagination state
   pagination: PaginationState;
   setPage: (page: number) => void;
   setPageSize: (pageSize: number) => void;
   nextPage: () => void;
   previousPage: () => void;
-  
+
   // Sort state
   sort?: SortState | SortState[];
   setSort: (field: string, direction?: 'asc' | 'desc') => void;
   toggleSort: (field: string) => void;
   clearSort: () => void;
-  
+
   // Data & Query state
   data?: TData[];
   isLoading: boolean;
@@ -139,7 +159,7 @@ export interface UseFilterPilotResult<TData, TFilters = Record<string, any>> {
   error?: Error;
   isFetching: boolean;
   refetch: () => void;
-  
+
   // Preset management
   presets?: {
     savePreset: (name: string) => void;
@@ -147,9 +167,14 @@ export interface UseFilterPilotResult<TData, TFilters = Record<string, any>> {
     deletePreset: (id: string) => void;
     getPresets: () => FilterPreset[];
   };
-  
+
   // Utilities
   getActiveFiltersCount: () => number;
   hasActiveFilters: () => boolean;
   getQueryKey: () => unknown[];
+}
+
+// Additional types for query params
+export interface QueryParams {
+  [key: string]: string | string[] | undefined;
 }

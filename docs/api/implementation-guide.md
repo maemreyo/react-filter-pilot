@@ -1,14 +1,401 @@
 # react-filter-pilot Implementation Guide
 
 ## Table of Contents
-1. [Basic Implementation](#basic-implementation)
-2. [Advanced Filter Types](#advanced-filter-types)
-3. [URL Synchronization](#url-synchronization)
-4. [Custom Data Fetching](#custom-data-fetching)
-5. [Filter Presets](#filter-presets)
-6. [External Pagination](#external-pagination)
-7. [Multi-column Sorting](#multi-column-sorting)
-8. [Real-world Examples](#real-world-examples)
+1. [Setup & Installation](#setup--installation)
+2. [Basic Implementation](#basic-implementation)
+3. [TanStack Query Integration](#tanstack-query-integration)
+4. [Advanced Filter Types](#advanced-filter-types)
+5. [URL Synchronization](#url-synchronization)
+6. [Custom Data Fetching](#custom-data-fetching)
+7. [Filter Presets](#filter-presets)
+8. [External Pagination](#external-pagination)
+9. [Multi-column Sorting](#multi-column-sorting)
+10. [Real-world Examples](#real-world-examples)
+
+## Setup & Installation
+
+### 1. Install Dependencies
+
+```bash
+npm install react-filter-pilot @tanstack/react-query
+```
+
+### 2. Setup Query Client
+
+```tsx
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 5 * 60 * 1000, // 5 minutes
+      gcTime: 10 * 60 * 1000, // 10 minutes (cacheTime in v4)
+      retry: 3,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
+
+function App() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      {/* Your app */}
+      <ReactQueryDevtools initialIsOpen={false} />
+    </QueryClientProvider>
+  );
+}
+```
+
+### 3. Setup Routing (Optional)
+
+For React Router DOM:
+```tsx
+import { BrowserRouter } from 'react-router-dom';
+
+<BrowserRouter>
+  <App />
+</BrowserRouter>
+```
+
+For Next.js, no additional setup needed.
+
+## TanStack Query Integration
+
+### Query Options
+
+```tsx
+const { data, isLoading } = useFilterPilot({
+  fetchConfig: {
+    fetchFn: fetchProducts,
+    // TanStack Query options
+    staleTime: 10 * 60 * 1000,
+    gcTime: 15 * 60 * 1000,
+    refetchInterval: 30000,
+    refetchOnWindowFocus: true,
+    retry: (failureCount, error) => {
+      if (error.status === 404) return false;
+      return failureCount < 3;
+    },
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+    select: (data) => ({
+      ...data,
+      data: data.data.sort((a, b) => b.rating - a.rating),
+    }),
+    placeholderData: (previousData) => previousData,
+    enabled: userIsAuthenticated,
+  },
+});
+```
+
+### With Mutations
+
+```tsx
+function ProductManager() {
+  const filterPilot = useFilterPilot<Product, ProductFilters>({
+    filterConfigs: [
+      { name: 'category', defaultValue: 'all' },
+      { name: 'search', defaultValue: '', debounceMs: 300 },
+    ],
+    fetchConfig: {
+      fetchFn: fetchProducts,
+    },
+  });
+
+  // Create mutation
+  const createMutation = useFilterMutation({
+    filterPilot,
+    mutationFn: async (newProduct: CreateProductDTO) => {
+      const response = await api.post('/products', newProduct);
+      return response.data;
+    },
+    onSuccess: (data) => {
+      toast.success(`Product "${data.name}" created!`);
+    },
+  });
+
+  // Update mutation with optimistic update
+  const updateMutation = useFilterMutation({
+    filterPilot,
+    mutationFn: async ({ id, ...updates }: UpdateProductDTO) => {
+      const response = await api.patch(`/products/${id}`, updates);
+      return response.data;
+    },
+    optimisticUpdate: ({ id, ...updates }) => {
+      return filterPilot.data?.map(product =>
+        product.id === id ? { ...product, ...updates } : product
+      ) || [];
+    },
+  });
+
+  // Delete mutation
+  const deleteMutation = useFilterMutation({
+    filterPilot,
+    mutationFn: async (id: string) => {
+      await api.delete(`/products/${id}`);
+      return id;
+    },
+    optimisticUpdate: (id) => {
+      return filterPilot.data?.filter(product => product.id !== id) || [];
+    },
+  });
+
+  return (
+    <>
+      <CreateProductForm onSubmit={createMutation.mutate} />
+      <ProductList
+        products={filterPilot.data}
+        onUpdate={updateMutation.mutate}
+        onDelete={deleteMutation.mutate}
+        isLoading={filterPilot.isLoading}
+      />
+    </>
+  );
+}
+```
+
+### Infinite Scrolling
+
+```tsx
+function InfiniteProductList() {
+  const {
+    data,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    filters,
+    setFilterValue,
+  } = useFilterPilotInfinite<Product, ProductFilters>({
+    filterConfigs: [
+      { name: 'category', defaultValue: 'all' },
+      { name: 'search', defaultValue: '', debounceMs: 300 },
+    ],
+    fetchConfig: {
+      fetchFn: async ({ filters, cursor }) => {
+        const response = await api.get('/products', {
+          params: {
+            ...filters,
+            cursor,
+            limit: 20,
+          },
+        });
+        
+        return {
+          data: response.data.products,
+          totalRecords: response.data.total,
+          nextCursor: response.data.nextCursor,
+        };
+      },
+      staleTime: 5 * 60 * 1000,
+    },
+  });
+
+  // Intersection Observer for auto-load
+  const loadMoreRef = useRef<HTMLDivElement>(null);
+  
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasNextPage && !isFetchingNextPage) {
+          fetchNextPage();
+        }
+      },
+      { threshold: 1.0 }
+    );
+
+    if (loadMoreRef.current) {
+      observer.observe(loadMoreRef.current);
+    }
+
+    return () => observer.disconnect();
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
+
+  return (
+    <div>
+      <Filters filters={filters} onChange={setFilterValue} />
+      
+      <div className="product-grid">
+        {data.map((product) => (
+          <ProductCard key={product.id} product={product} />
+        ))}
+      </div>
+
+      {/* Auto-load trigger */}
+      <div ref={loadMoreRef} style={{ height: 1 }} />
+      
+      {isFetchingNextPage && <LoadingSpinner />}
+    </div>
+  );
+}
+```
+
+## Basic Implementation
+
+### Simple Text Search with Category Filter
+
+```typescript
+import React from 'react';
+import { useFilterPilot } from 'react-filter-pilot';
+import { useQuery } from '@tanstack/react-query';
+
+interface Product {
+  id: string;
+  name: string;
+  category: string;
+  price: number;
+}
+
+interface ProductFilters {
+  search: string;
+  category: string;
+  minPrice: number;
+  maxPrice: number;
+}
+
+const ProductList: React.FC = () => {
+  const {
+    filters,
+    setFilterValue,
+    data,
+    isLoading,
+    pagination,
+    setPage,
+    resetFilters,
+    hasActiveFilters
+  } = useFilterPilot<Product, ProductFilters>({
+    filterConfigs: [
+      {
+        name: 'search',
+        defaultValue: '',
+        debounceMs: 300,
+        urlKey: 'q'
+      },
+      {
+        name: 'category',
+        defaultValue: 'all',
+        urlKey: 'cat'
+      },
+      {
+        name: 'minPrice',
+        defaultValue: 0,
+        transformToUrl: (value) => value.toString(),
+        transformFromUrl: (value) => parseInt(value, 10)
+      },
+      {
+        name: 'maxPrice',
+        defaultValue: 1000,
+        transformToUrl: (value) => value.toString(),
+        transformFromUrl: (value) => parseInt(value, 10)
+      }
+    ],
+    paginationConfig: {
+      initialPageSize: 20,
+      pageSizeOptions: [10, 20, 50],
+      resetOnFilterChange: true
+    },
+    fetchConfig: {
+      fetchFn: async ({ filters, pagination }) => {
+        const params = new URLSearchParams();
+        
+        if (filters.search) params.set('search', filters.search);
+        if (filters.category !== 'all') params.set('category', filters.category);
+        if (filters.minPrice > 0) params.set('minPrice', filters.minPrice.toString());
+        if (filters.maxPrice < 1000) params.set('maxPrice', filters.maxPrice.toString());
+        
+        params.set('page', pagination.page.toString());
+        params.set('limit', pagination.pageSize.toString());
+        
+        const response = await fetch(`/api/products?${params}`);
+        const result = await response.json();
+        
+        return {
+          data: result.products,
+          totalRecords: result.total
+        };
+      },
+      staleTime: 5 * 60 * 1000, // 5 minutes
+      gcTime: 10 * 60 * 1000 // 10 minutes
+    }
+  });
+
+  return (
+    <div className="product-list">
+      {/* Filter Controls */}
+      <div className="filters">
+        <input
+          type="text"
+          placeholder="Search products..."
+          value={filters.search}
+          onChange={(e) => setFilterValue('search', e.target.value)}
+        />
+        
+        <select
+          value={filters.category}
+          onChange={(e) => setFilterValue('category', e.target.value)}
+        >
+          <option value="all">All Categories</option>
+          <option value="electronics">Electronics</option>
+          <option value="clothing">Clothing</option>
+          <option value="books">Books</option>
+        </select>
+        
+        <div className="price-range">
+          <input
+            type="number"
+            placeholder="Min price"
+            value={filters.minPrice}
+            onChange={(e) => setFilterValue('minPrice', parseInt(e.target.value) || 0)}
+          />
+          <input
+            type="number"
+            placeholder="Max price"
+            value={filters.maxPrice}
+            onChange={(e) => setFilterValue('maxPrice', parseInt(e.target.value) || 1000)}
+          />
+        </div>
+        
+        {hasActiveFilters() && (
+          <button onClick={resetFilters}>Clear Filters</button>
+        )}
+      </div>
+
+      {/* Results */}
+      {isLoading ? (
+        <div>Loading...</div>
+      ) : (
+        <>
+          <div className="products">
+            {data?.map((product) => (
+              <ProductCard key={product.id} product={product} />
+            ))}
+          </div>
+          
+          {/* Pagination */}
+          <div className="pagination">
+            <button 
+              onClick={() => setPage(pagination.page - 1)}
+              disabled={!pagination.hasPreviousPage}
+            >
+              Previous
+            </button>
+            
+            <span>
+              Page {pagination.page} of {pagination.totalPages}
+            </span>
+            
+            <button 
+              onClick={() => setPage(pagination.page + 1)}
+              disabled={!pagination.hasNextPage}
+            >
+              Next
+            </button>
+          </div>
+        </>
+      )}
+    </div>
+  );
+};
+```
 
 ## Basic Implementation
 

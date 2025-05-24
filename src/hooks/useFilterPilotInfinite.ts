@@ -1,20 +1,17 @@
+import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   UseFilterPilotOptions,
-  UseFilterPilotResult,
   FilterConfig,
-  PaginationState,
-  SortState,
-  FilterPreset,
   FetchParams,
   FetchResult,
+  SortState,
+  FilterPreset,
+  UrlHandler,
 } from '../types';
 import {
   getDefaultFilters,
   isFilterActive,
-  mergeFilters,
-  compareFilters,
   parseUrlParams,
   buildUrlParams,
   transformFilterValue,
@@ -22,12 +19,82 @@ import {
 } from '../utils';
 import { useDefaultUrlHandler } from './useUrlHandler';
 
-export function useFilterPilot<TData, TFilters = Record<string, any>>(
-  options: UseFilterPilotOptions<TData, TFilters>
-): UseFilterPilotResult<TData, TFilters> {
+interface InfiniteResult<TData> extends FetchResult<TData> {
+  nextCursor?: string | number | null;
+  previousCursor?: string | number | null;
+}
+
+interface UseFilterPilotInfiniteOptions<TData, TFilters>
+  extends Omit<UseFilterPilotOptions<TData, TFilters>, 'paginationConfig' | 'fetchConfig'> {
+  fetchConfig: Omit<UseFilterPilotOptions<TData, TFilters>['fetchConfig'], 'fetchFn'> & {
+    fetchFn: (
+      params: FetchParams<TFilters> & { cursor?: string | number | null }
+    ) => Promise<InfiniteResult<TData>>;
+    getNextPageParam?: (
+      lastPage: InfiniteResult<TData>,
+      allPages: InfiniteResult<TData>[]
+    ) => string | number | null | undefined;
+    getPreviousPageParam?: (
+      firstPage: InfiniteResult<TData>,
+      allPages: InfiniteResult<TData>[]
+    ) => string | number | null | undefined;
+    initialPageParam?: string | number | null;
+    maxPages?: number;
+  };
+}
+
+export interface UseFilterPilotInfiniteResult<TData, TFilters> {
+  // Filter state
+  filters: TFilters;
+  setFilterValue: (name: keyof TFilters, value: any) => void;
+  setFilters: (filters: Partial<TFilters>) => void;
+  resetFilters: () => void;
+  resetFilter: (name: keyof TFilters) => void;
+
+  // Sort state
+  sort?: SortState;
+  setSort: (field: string, direction?: 'asc' | 'desc') => void;
+  toggleSort: (field: string) => void;
+  clearSort: () => void;
+
+  // Data & Query state
+  data: TData[]; // Flattened pages
+  isLoading: boolean;
+  isError: boolean;
+  error?: Error;
+  isFetching: boolean;
+  isFetchingNextPage: boolean;
+  isFetchingPreviousPage: boolean;
+  hasNextPage: boolean;
+  hasPreviousPage: boolean;
+  fetchNextPage: () => void;
+  fetchPreviousPage: () => void;
+  refetch: () => void;
+  totalRecords: number;
+  pageParams: unknown[];
+
+  // Utilities
+  hasActiveFilters: () => boolean;
+  getActiveFiltersCount: () => number;
+  getQueryKey: () => unknown[];
+
+  // Presets (if enabled)
+  presets?: {
+    savePreset: (name: string) => void;
+    loadPreset: (preset: FilterPreset) => void;
+    deletePreset: (id: string) => void;
+    getPresets: () => FilterPreset[];
+  };
+}
+
+/**
+ * Hook for infinite scrolling with filters
+ */
+export function useFilterPilotInfinite<TData, TFilters = Record<string, any>>(
+  options: UseFilterPilotInfiniteOptions<TData, TFilters>
+): UseFilterPilotInfiniteResult<TData, TFilters> {
   const {
     filterConfigs,
-    paginationConfig = {},
     sortConfig = {},
     fetchConfig,
     urlHandler: providedUrlHandler,
@@ -48,15 +115,6 @@ export function useFilterPilot<TData, TFilters = Record<string, any>>(
     [filterConfigs]
   );
 
-  const defaultPagination: PaginationState = {
-    page: paginationConfig.initialPage || 1,
-    pageSize: paginationConfig.initialPageSize || 10,
-    totalPages: 0,
-    totalRecords: 0,
-    hasNextPage: false,
-    hasPreviousPage: false,
-  };
-
   const defaultSort: SortState | undefined = sortConfig.initialSortField
     ? {
         field: sortConfig.initialSortField,
@@ -66,7 +124,6 @@ export function useFilterPilot<TData, TFilters = Record<string, any>>(
 
   // State
   const [filters, setFiltersState] = useState<TFilters>(defaultFilters);
-  const [pagination, setPaginationState] = useState<PaginationState>(defaultPagination);
   const [sort, setSortState] = useState<SortState | undefined>(defaultSort);
   const [presets, setPresets] = useState<FilterPreset[]>([]);
 
@@ -85,26 +142,16 @@ export function useFilterPilot<TData, TFilters = Record<string, any>>(
       if (initialFiltersProvider) {
         try {
           const providedFilters = await initialFiltersProvider();
-          initialFilters = mergeFilters(providedFilters, defaultFilters) as TFilters;
+          initialFilters = { ...defaultFilters, ...providedFilters } as TFilters;
         } catch (error) {
           console.error('Error loading initial filters:', error);
         }
       }
 
       // Merge URL filters with initial filters
-      const finalFilters = mergeFilters(urlFilters, initialFilters) as TFilters;
+      const finalFilters = { ...initialFilters, ...urlFilters } as TFilters;
       setFiltersState(finalFilters);
       debouncedFilters.current = finalFilters;
-
-      // Initialize pagination from URL
-      if (paginationConfig.syncWithUrl !== false) {
-        const page = parseInt(urlParams.get('page') || '1', 10);
-        const pageSize = parseInt(
-          urlParams.get('pageSize') || String(defaultPagination.pageSize),
-          10
-        );
-        setPaginationState((prev) => ({ ...prev, page, pageSize }));
-      }
 
       // Initialize sort from URL
       if (sortConfig.syncWithUrl !== false) {
@@ -120,117 +167,107 @@ export function useFilterPilot<TData, TFilters = Record<string, any>>(
     };
 
     initializeFromUrl();
-  }, []); // Only run on mount
+  }, []);
 
-  // Sync filters to URL
+  // Sync to URL
   useEffect(() => {
-    if (!compareFilters(debouncedFilters.current, filters)) {
-      const params = urlHandler.getParams();
-      const filterParams = buildUrlParams(debouncedFilters.current, filterConfigs);
+    const params = urlHandler.getParams();
+    const filterParams = buildUrlParams(debouncedFilters.current, filterConfigs);
 
-      // Clear existing filter params
-      filterConfigs.forEach((config) => {
-        const urlKey = config.urlKey || config.name;
-        params.delete(urlKey);
-      });
+    // Clear existing filter params
+    filterConfigs.forEach((config) => {
+      const urlKey = config.urlKey || config.name;
+      params.delete(urlKey);
+    });
 
-      // Set new filter params
-      filterParams.forEach((value, key) => {
-        params.set(key, value);
-      });
+    // Set new filter params
+    filterParams.forEach((value, key) => {
+      params.set(key, value);
+    });
 
-      // Add pagination params
-      if (paginationConfig.syncWithUrl !== false) {
-        params.set('page', String(pagination.page));
-        params.set('pageSize', String(pagination.pageSize));
-      }
-
-      // Add sort params
-      if (sortConfig.syncWithUrl !== false && sort) {
-        params.set('sortBy', sort.field);
-        params.set('sortOrder', sort.direction);
-      }
-
-      urlHandler.setParams(params);
+    // Add sort params
+    if (sortConfig.syncWithUrl !== false && sort) {
+      params.set('sortBy', sort.field);
+      params.set('sortOrder', sort.direction);
     }
-  }, [debouncedFilters.current, pagination, sort]);
+
+    urlHandler.setParams(params);
+  }, [debouncedFilters.current, sort]);
 
   // Query key
   const queryKey = useMemo(
     () => [
-      fetchConfig.queryKey || 'filterPilot',
+      fetchConfig.queryKey || 'filterPilotInfinite',
       'filters',
       debouncedFilters.current,
-      'pagination',
-      pagination,
       'sort',
       sort,
     ],
-    [debouncedFilters.current, pagination, sort, fetchConfig.queryKey]
+    [debouncedFilters.current, sort, fetchConfig.queryKey]
   );
 
   // Fetch function
-  const fetchData = useCallback(async () => {
-    const params: FetchParams<TFilters> = {
-      filters: debouncedFilters.current,
-      pagination: {
-        page: pagination.page,
-        pageSize: pagination.pageSize,
-      },
-      sort,
-    };
+  const fetchData = useCallback(
+    async ({ pageParam }: { pageParam?: unknown }) => {
+      const params: FetchParams<TFilters> & { cursor?: string | number | null } = {
+        filters: debouncedFilters.current,
+        pagination: {
+          page: 1, // Not used in infinite query
+          pageSize: 20, // Default page size for infinite
+        },
+        sort,
+        cursor: pageParam as string | number | null,
+      };
 
-    // Transform filters for API
-    const transformedParams = { ...params };
-    transformedParams.filters = {} as TFilters;
+      // Transform filters for API
+      const transformedParams = { ...params };
+      transformedParams.filters = {} as TFilters;
 
-    Object.entries(params.filters as Record<string, any>).forEach(([key, value]) => {
-      const config = filterConfigs.find((c) => c.name === key);
-      const transformedValue = transformFilterValue(value, config?.transformForApi);
-      (transformedParams.filters as any)[key] = transformedValue;
-    });
+      Object.entries(params.filters as Record<string, any>).forEach(([key, value]) => {
+        const config = filterConfigs.find((c) => c.name === key);
+        const transformedValue = transformFilterValue(value, config?.transformForApi);
+        (transformedParams.filters as any)[key] = transformedValue;
+      });
 
-    return fetchConfig.fetchFn(transformedParams);
-  }, [pagination, sort, filterConfigs, fetchConfig.fetchFn]);
+      return fetchConfig.fetchFn(transformedParams);
+    },
+    [sort, filterConfigs, fetchConfig.fetchFn]
+  );
 
-  // Query
-  const query = useQuery<FetchResult<TData>, Error>({
+  // Infinite Query
+  const query = useInfiniteQuery({
     queryKey,
     queryFn: fetchData,
     enabled: fetchConfig.enabled !== false,
     staleTime: fetchConfig.staleTime,
-    gcTime: fetchConfig.gcTime || fetchConfig.cacheTime, // Support both v4 and v5
+    gcTime: fetchConfig.gcTime || fetchConfig.cacheTime,
     refetchOnWindowFocus: fetchConfig.refetchOnWindowFocus,
     refetchInterval: fetchConfig.refetchInterval,
     refetchIntervalInBackground: fetchConfig.refetchIntervalInBackground,
-    select: fetchConfig.select,
+    getNextPageParam: fetchConfig.getNextPageParam || ((lastPage) => lastPage.nextCursor),
+    getPreviousPageParam:
+      fetchConfig.getPreviousPageParam || ((firstPage) => firstPage.previousCursor),
+    initialPageParam: fetchConfig.initialPageParam ?? null,
+    maxPages: fetchConfig.maxPages,
+    select: fetchConfig.select
+      ? (data) => ({
+          ...data,
+          pages: data.pages.map((page) => fetchConfig.select!(page)),
+        })
+      : undefined,
     placeholderData: fetchConfig.placeholderData,
-    initialData: fetchConfig.initialData,
-    initialDataUpdatedAt: fetchConfig.initialDataUpdatedAt,
     retry: fetchConfig.retry,
     retryDelay: fetchConfig.retryDelay,
     networkMode: fetchConfig.networkMode,
-    keepPreviousData: fetchConfig.keepPreviousData,
     suspense: fetchConfig.suspense,
     useErrorBoundary: fetchConfig.useErrorBoundary,
     meta: fetchConfig.meta,
-    queryKeyHashFn: fetchConfig.queryKeyHashFn,
-    structuralSharing: fetchConfig.structuralSharing,
   });
 
-  // Handle success/error with useEffect to support both v4 and v5
+  // Handle success/error
   useEffect(() => {
     if (query.isSuccess && query.data) {
-      // Update pagination state with total records
-      setPaginationState((prev) => ({
-        ...prev,
-        totalRecords: query.data.totalRecords,
-        totalPages: Math.ceil(query.data.totalRecords / prev.pageSize),
-        hasNextPage: prev.page < Math.ceil(query.data.totalRecords / prev.pageSize),
-        hasPreviousPage: prev.page > 1,
-      }));
-
-      fetchConfig.onSuccess?.(query.data);
+      fetchConfig.onSuccess?.(query.data.pages[query.data.pages.length - 1]);
     }
   }, [query.isSuccess, query.data]);
 
@@ -252,56 +289,34 @@ export function useFilterPilot<TData, TFilters = Record<string, any>>(
 
       // Handle debouncing
       if (config?.debounceMs) {
-        // Clear existing timer
         if (debounceTimers.current[String(name)]) {
           clearTimeout(debounceTimers.current[String(name)]);
         }
 
-        // Set new timer
         debounceTimers.current[String(name)] = setTimeout(() => {
           debouncedFilters.current = {
             ...debouncedFilters.current,
             [name]: value,
           };
-
-          // Reset pagination if configured
-          if (paginationConfig.resetOnFilterChange !== false) {
-            setPaginationState((prev) => ({ ...prev, page: 1 }));
-          }
         }, config.debounceMs);
       } else {
-        // No debouncing, update immediately
         debouncedFilters.current = {
           ...debouncedFilters.current,
           [name]: value,
         };
-
-        // Reset pagination if configured
-        if (paginationConfig.resetOnFilterChange !== false) {
-          setPaginationState((prev) => ({ ...prev, page: 1 }));
-        }
       }
     },
-    [filterConfigs, paginationConfig.resetOnFilterChange]
+    [filterConfigs]
   );
 
-  const setFilters = useCallback(
-    (newFilters: Partial<TFilters>) => {
-      setFiltersState((prev) => ({ ...prev, ...newFilters }));
-      debouncedFilters.current = { ...debouncedFilters.current, ...newFilters };
-
-      // Reset pagination if configured
-      if (paginationConfig.resetOnFilterChange !== false) {
-        setPaginationState((prev) => ({ ...prev, page: 1 }));
-      }
-    },
-    [paginationConfig.resetOnFilterChange]
-  );
+  const setFilters = useCallback((newFilters: Partial<TFilters>) => {
+    setFiltersState((prev) => ({ ...prev, ...newFilters }));
+    debouncedFilters.current = { ...debouncedFilters.current, ...newFilters };
+  }, []);
 
   const resetFilters = useCallback(() => {
     setFiltersState(defaultFilters);
     debouncedFilters.current = defaultFilters;
-    setPaginationState((prev) => ({ ...prev, page: 1 }));
   }, [defaultFilters]);
 
   const resetFilter = useCallback(
@@ -311,37 +326,6 @@ export function useFilterPilot<TData, TFilters = Record<string, any>>(
     },
     [defaultFilters, setFilterValue]
   );
-
-  // Pagination functions
-  const setPage = useCallback((page: number) => {
-    setPaginationState((prev) => ({ ...prev, page }));
-  }, []);
-
-  const setPageSize = useCallback((pageSize: number) => {
-    setPaginationState((prev) => ({
-      ...prev,
-      pageSize,
-      page: 1, // Reset to first page when changing page size
-    }));
-  }, []);
-
-  const nextPage = useCallback(() => {
-    setPaginationState((prev) => {
-      if (prev.hasNextPage) {
-        return { ...prev, page: prev.page + 1 };
-      }
-      return prev;
-    });
-  }, []);
-
-  const previousPage = useCallback(() => {
-    setPaginationState((prev) => {
-      if (prev.hasPreviousPage) {
-        return { ...prev, page: prev.page - 1 };
-      }
-      return prev;
-    });
-  }, []);
 
   // Sort functions
   const setSort = useCallback((field: string, direction: 'asc' | 'desc' = 'asc') => {
@@ -364,22 +348,20 @@ export function useFilterPilot<TData, TFilters = Record<string, any>>(
     setSortState(undefined);
   }, []);
 
-  // Utility functions
+  // Utilities
+  const hasActiveFilters = useCallback(() => {
+    return Object.entries(filters).some(([key, value]) => {
+      const config = filterConfigs.find((c) => c.name === key);
+      return isFilterActive(value, config?.defaultValue);
+    });
+  }, [filters, filterConfigs]);
+
   const getActiveFiltersCount = useCallback(() => {
     return Object.entries(filters).reduce((count, [key, value]) => {
       const config = filterConfigs.find((c) => c.name === key);
-      if (isFilterActive(value, config?.defaultValue)) {
-        return count + 1;
-      }
-      return count;
+      return isFilterActive(value, config?.defaultValue) ? count + 1 : count;
     }, 0);
   }, [filters, filterConfigs]);
-
-  const hasActiveFilters = useCallback(() => {
-    return getActiveFiltersCount() > 0;
-  }, [getActiveFiltersCount]);
-
-  const getQueryKey = useCallback(() => queryKey, [queryKey]);
 
   // Preset management
   const presetMethods = useMemo(() => {
@@ -437,6 +419,16 @@ export function useFilterPilot<TData, TFilters = Record<string, any>>(
     }
   }, [enablePresets, fetchConfig.queryKey]);
 
+  // Flatten pages data
+  const data = useMemo(() => {
+    return query.data?.pages.flatMap((page) => page.data) || [];
+  }, [query.data]);
+
+  const totalRecords = useMemo(() => {
+    const lastPage = query.data?.pages[query.data.pages.length - 1];
+    return lastPage?.totalRecords || 0;
+  }, [query.data]);
+
   return {
     // Filter state
     filters,
@@ -445,13 +437,6 @@ export function useFilterPilot<TData, TFilters = Record<string, any>>(
     resetFilters,
     resetFilter,
 
-    // Pagination state
-    pagination,
-    setPage,
-    setPageSize,
-    nextPage,
-    previousPage,
-
     // Sort state
     sort,
     setSort,
@@ -459,19 +444,27 @@ export function useFilterPilot<TData, TFilters = Record<string, any>>(
     clearSort,
 
     // Data & Query state
-    data: query.data?.data,
+    data,
     isLoading: query.isLoading,
     isError: query.isError,
     error: query.error,
     isFetching: query.isFetching,
+    isFetchingNextPage: query.isFetchingNextPage,
+    isFetchingPreviousPage: query.isFetchingPreviousPage,
+    hasNextPage: query.hasNextPage ?? false,
+    hasPreviousPage: query.hasPreviousPage ?? false,
+    fetchNextPage: query.fetchNextPage,
+    fetchPreviousPage: query.fetchPreviousPage,
     refetch: query.refetch,
-
-    // Preset management
-    presets: presetMethods,
+    totalRecords,
+    pageParams: query.data?.pageParams || [],
 
     // Utilities
-    getActiveFiltersCount,
     hasActiveFilters,
-    getQueryKey,
+    getActiveFiltersCount,
+    getQueryKey: () => queryKey,
+
+    // Presets
+    presets: presetMethods,
   };
 }

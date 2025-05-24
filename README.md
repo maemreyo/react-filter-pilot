@@ -1,180 +1,150 @@
-# **react-filter-pilot**
+# Source Code Structure
 
-![npm version](https://img.shields.io/npm/v/react-filter-pilot)
-![license](https://img.shields.io/npm/l/react-filter-pilot)
-![build status](https://img.shields.io/github/actions/workflow/status/maemreyo/react-filter-pilot/main.yml?branch=main)
+This directory contains the complete source code for react-filter-pilot.
 
-react-filter-pilot is a powerful and flexible custom hook for React, designed to simplify the management of filter states, synchronize them with URL query parameters, handle pagination, and provide deep customization for data fetching processes. This library helps you build dynamic data lists and tables efficiently and with greater maintainability.
+## Directory Structure
 
-## **✨ Key Features**
-
-- 🚀 **Intelligent Filter Management:** Easily define and manage the state of various filter types.
-- 🔗 **Automatic URL Synchronization:** Two-way synchronization between filter state and URL query parameters, supporting bookmarks and shareable links.
-- ⚙️ **Deeply Customizable Data Fetching:** Provides hooks to intervene at every stage of the fetching process, integrating smoothly with TanStack Query.
-- 📄 **Flexible Pagination:** Supports internal pagination management or control from external state (e.g., from a Mantine Table).
-- ⏱️ **Built-in Debouncing:** Allows individual debouncing for filter inputs to optimize performance.
-- 🔄 **Value Transformation:** Easily transform filter values for URL representation, API requests, and when reading from the URL.
-- ⏳ **Asynchronous Initial Filters:** Supports setting initial filter values fetched from an API.
-- 💾 **Filter Presets:** Core functions to enable saving and loading filter configurations (saved searches).
-- 🔀 **Multi-Select & Range Filters:** First-class support for array-based and object-based filter values.
-- 🧩 **Built-in URL Adapters:** Ready-to-use adapters for React Router DOM and Next.js.
-- ⚡ **Optimized with Caching:** Designed to work effectively with TanStack Query's caching mechanisms.
-
-## **🎯 Requirements**
-
-- React 16.8+
-- @tanstack/react-query v4+ or v5+ (for data fetching and caching)
-- Optional: A routing library like react-router-dom v6+ or Next.js (if using a custom urlHandler for advanced URL integration). The library provides a default internal URL handler.
-
-## **📦 Installation**
-
-```bash
-# Using npm
-npm install react-filter-pilot
-
-# Using yarn
-yarn add react-filter-pilot
-
-# Using pnpm
-pnpm add react-filter-pilot
+```
+src/
+├── hooks/                  # Core React hooks
+│   ├── useFilterPilot.ts          # Main hook with filter, pagination, sort
+│   ├── useFilterPilotInfinite.ts  # Infinite scrolling variant
+│   ├── useFilterMutation.ts       # Mutation helper for data updates
+│   ├── useDebounce.ts            # Debounce hook for performance
+│   └── useUrlHandler.ts          # Default URL synchronization
+│
+├── adapters/              # URL synchronization adapters
+│   ├── reactRouterDom.ts         # React Router v6 integration
+│   ├── nextJs.ts                 # Next.js App Router integration  
+│   ├── nextJsPages.ts            # Next.js Pages Router integration
+│   └── universal.ts              # Universal adapters (hash, memory, custom)
+│
+├── types/                 # TypeScript type definitions
+│   └── index.ts                  # All interfaces and types
+│
+├── utils/                 # Utility functions
+│   ├── index.ts                  # Utility exports
+│   ├── transformUtils.ts         # Value transformation helpers
+│   ├── urlUtils.ts               # URL parameter parsing/building
+│   ├── filterUtils.ts            # Filter state management utilities
+│   └── debounce.ts               # Debounce implementation
+│
+├── test-utils/            # Testing utilities
+│   └── index.ts                  # Mock creators and test helpers
+│
+├── examples/              # Usage examples
+│   ├── mutations.example.tsx     # CRUD operations with mutations
+│   └── infinite-scroll.example.tsx # Infinite scrolling implementation
+│
+└── index.ts               # Main package exports
 ```
 
-## **🚀 Quick Start**
+## Core Concepts
 
-```jsx
-import React from 'react';
-import { useFilterPilot } from 'react-filter-pilot';
-// Ensure you have QueryClientProvider set up at the root of your app
+### 1. **Hooks**
+The main functionality is provided through React hooks:
+- `useFilterPilot`: Primary hook for filter, pagination, and sorting
+- `useFilterPilotInfinite`: Specialized for infinite scrolling
+- `useFilterMutation`: Helper for data mutations with optimistic updates
 
-// 1. Define your data fetching function
-const fetchMyItems = async ({ filters, pagination, sort }) => {
-  const params = new URLSearchParams();
-  if (filters.searchTerm) params.set('q', String(filters.searchTerm));
-  params.set('page', String(pagination.page));
-  params.set('limit', String(pagination.pageSize));
-  if (sort?.field) {
-    params.set('sortBy', sort.field);
-    params.set('sortOrder', sort.direction);
-  }
+### 2. **Adapters**
+URL synchronization is handled through adapters:
+- Each routing library has its own adapter
+- Custom adapters can be created using `createUrlHandler`
+- Memory adapter available for testing
 
-  // Replace with your actual API endpoint
-  const response = await fetch(`/api/items?${params.toString()}`);
-  if (!response.ok) throw new Error('Network response was not ok');
-  const result = await response.json(); // Assuming API returns { items: [], totalCount: 0 }
-  return { data: result.items, totalRecords: result.totalCount };
-};
+### 3. **Type Safety**
+Full TypeScript support with:
+- Generic types for data and filters
+- Strict type checking for configurations
+- Exported types for custom implementations
 
-// 2. Use the hook in your component
-function MyFilteredListComponent() {
-  const { filters, setFilterValue, data, isLoading, pagination, sort } = useFilterPilot({
-    filterConfigs: [
-      { name: 'searchTerm', defaultValue: '', urlKey: 'q', debounceMs: 300 },
-      { name: 'category', defaultValue: 'all' },
-    ],
-    paginationConfig: {
-      initialPageSize: 10,
-    },
-    sortConfig: {
-      // Optional sorting
-      initialSortField: 'name',
-      initialSortDirection: 'asc',
-    },
-    fetchConfig: {
-      fetchFn: fetchMyItems,
-    },
-    // No urlHandler provided, uses default internal URL sync.
-  });
+### 4. **Utilities**
+Helper functions for:
+- URL parameter transformation
+- Filter value comparison
+- Debouncing for performance
+- Test utilities for mocking
 
-  return (
-    <div>
-      <input
-        type='text'
-        placeholder='Search...'
-        value={filters.searchTerm || ''}
-        onChange={(e) => setFilterValue('searchTerm', e.target.value)}
-      />
-      {/* Add other filter UIs, sorting controls, and display the data list */}
-      {isLoading && <p>Loading...</p>}
-      <ul>
-        {data?.map((item) => (
-          <li key={item.id}>{item.name}</li>
-        ))}
-      </ul>
-      {/* Add pagination UI using pagination state and methods */}
-      {/* Add sorting UI using sort state and methods */}
-    </div>
-  );
+## Key Features Implementation
+
+### Filter Management
+- Filters are stored in React state
+- Debouncing is handled per-filter
+- URL synchronization is automatic
+- Value transformations for URL/API
+
+### TanStack Query Integration
+- Deep integration with v4 and v5
+- All query options supported
+- Mutation helpers with optimistic updates
+- Smart cache invalidation
+
+### URL Synchronization
+- Two-way binding with URL
+- Custom transformation functions
+- Support for complex data types
+- Adapter pattern for flexibility
+
+### Performance Optimizations
+- Individual filter debouncing
+- Efficient re-render prevention
+- Smart query key structure
+- Request cancellation support
+
+## Extension Points
+
+### Custom Adapters
+```typescript
+const myAdapter = createUrlHandler({
+  getUrl: () => myCustomUrlGetter(),
+  setUrl: (url) => myCustomUrlSetter(url),
+});
+```
+
+### Custom Transformations
+```typescript
+{
+  name: 'dateRange',
+  transformToUrl: (value) => customSerialize(value),
+  transformFromUrl: (value) => customDeserialize(value),
+  transformForApi: (value) => apiFormat(value),
 }
 ```
 
-## **🔌 Using with React Router DOM**
-
-react-filter-pilot provides a built-in adapter for React Router DOM v6+:
-
-```jsx
-import { useFilterPilot, useReactRouterDomUrlHandler } from 'react-filter-pilot';
-
-function MyComponent() {
-  // Create a URL handler using React Router DOM
-  const urlHandler = useReactRouterDomUrlHandler();
-
-  const { filters, setFilterValue /* ... */ } = useFilterPilot({
-    // ...other options
-    urlHandler, // Use the React Router DOM URL handler
-  });
-
-  // Rest of your component
+### Custom Fetch Logic
+```typescript
+fetchFn: async (params) => {
+  // Your custom API logic
+  const result = await myApi.search(params);
+  return {
+    data: result.items,
+    totalRecords: result.total,
+    meta: result.additionalInfo,
+  };
 }
 ```
 
-## **🔌 Using with Next.js**
+## Testing
 
-react-filter-pilot provides a built-in adapter for Next.js App Router:
+The package includes comprehensive test utilities:
+- Mock creators for all main functions
+- Test wrappers with providers
+- Debounce helpers for async testing
+- Type-safe mock data generators
 
-```jsx
-import { useFilterPilot, useNextJsUrlHandler } from 'react-filter-pilot';
+## Contributing
 
-function MyComponent() {
-  // Create a URL handler using Next.js
-  const urlHandler = useNextJsUrlHandler();
+When adding new features:
+1. Add types to `/types/index.ts`
+2. Export from `/index.ts`
+3. Add tests using test utilities
+4. Update documentation
+5. Add usage examples
 
-  const { filters, setFilterValue /* ... */ } = useFilterPilot({
-    // ...other options
-    urlHandler, // Use the Next.js URL handler
-  });
+## Version Compatibility
 
-  // Rest of your component
-}
-```
-
-## **📚 Detailed Documentation**
-
-To learn more about installation, configuration, and all the features of react-filter-pilot, please refer to our [**Full Documentation**](https://github.com/maemreyo/react-filter-pilot/tree/main/docs).
-
-## **� Development & Playground**
-
-This repository includes a playground to test and experiment with the library:
-
-```bash
-# Clone the repository
-git clone https://github.com/maemreyo/react-filter-pilot.git
-cd react-filter-pilot
-
-# Install dependencies
-pnpm install
-
-# Start the playground
-cd playground
-pnpm install
-pnpm dev
-```
-
-The playground will be available at http://localhost:3000.
-
-## **�🤝 Contributing**
-
-We welcome contributions from the community! Please read our [Contributing Guidelines](https://github.com/maemreyo/react-filter-pilot/blob/main/docs/CONTRIBUTING.md) for more details.
-
-## **📄 License**
-
-[MIT](https://github.com/maemreyo/react-filter-pilot/blob/main/LICENSE)
+- React: 16.8+ (Hooks support)
+- TanStack Query: v4 or v5
+- TypeScript: 4.0+ recommended
+- Node.js: 14+ for development

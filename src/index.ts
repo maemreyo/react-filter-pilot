@@ -1,7 +1,17 @@
 // Main exports
 export { useFilterPilot } from './hooks/useFilterPilot';
+export { useFilterPilotInfinite } from './hooks/useFilterPilotInfinite';
+export { useFilterMutation } from './hooks/useFilterMutation';
+
+// URL Adapters
 export { useReactRouterDomUrlHandler } from './adapters/reactRouterDom';
 export { useNextJsUrlHandler } from './adapters/nextJs';
+export { useNextJsPagesUrlHandler } from './adapters/nextJsPages';
+export { 
+  createUrlHandler,
+  useHashUrlHandler,
+  createMemoryUrlHandler 
+} from './adapters/universal';
 
 // Type exports
 export type {
@@ -21,10 +31,35 @@ export type {
   SortState,
 } from './types';
 
+// Also export the infinite hook result type
+export type { UseFilterPilotInfiniteResult } from './hooks/useFilterPilotInfinite';
+
 // Utility exports
 export {
   transformFilterValue,
   parseUrlParams,
   buildUrlParams,
   debounce,
+  isFilterActive,
+  getDefaultFilters,
+  compareFilters,
+  mergeFilters,
 } from './utils';
+
+// Test utilities (only export in development/test environments)
+export {
+  createMockFilterPilot,
+  createMockUrlHandler,
+  createMockPresets,
+  waitForDebounce,
+  createMockFetchResponse,
+  createTestWrapper,
+} from './test-utils';
+
+// TanStack Query compatibility utilities
+export {
+  normalizeQueryOptions,
+  detectTanStackQueryVersion,
+  createQueryOptions,
+  createInfiniteQueryOptions,
+} from './compat/tanstack-query';
