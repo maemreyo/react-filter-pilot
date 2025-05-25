@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import './App.css';
-import { ProductList, BlogPostList, UserManagement } from './examples';
+import { ProductList, BlogPostList, UserManagement, AdvancedExample } from './examples';
 
 function App() {
-  const [activeExample, setActiveExample] = useState<string>('product-list');
+  const [activeExample, setActiveExample] = useState<string>('advanced-example');
 
   return (
     <div className='app-container'>
@@ -13,6 +13,12 @@ function App() {
       </header>
 
       <div className='example-selector'>
+        <button
+          className={activeExample === 'advanced-example' ? 'active' : ''}
+          onClick={() => setActiveExample('advanced-example')}
+        >
+          Advanced Example
+        </button>
         <button
           className={activeExample === 'product-list' ? 'active' : ''}
           onClick={() => setActiveExample('product-list')}
@@ -34,6 +40,7 @@ function App() {
       </div>
 
       <main>
+        {activeExample === 'advanced-example' && <AdvancedExample />}
         {activeExample === 'product-list' && <ProductList />}
         {activeExample === 'blog-post-list' && <BlogPostList />}
         {activeExample === 'user-management' && <UserManagement />}
