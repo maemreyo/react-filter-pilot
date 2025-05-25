@@ -56,7 +56,6 @@
     "format": "prettier --write \"src/**/*.{ts,tsx,js,jsx,json,md}\"",
     "format:check": "prettier --check \"src/**/*.{ts,tsx,js,jsx,json,md}\"",
     "prepare": "husky install",
-    "prepublishOnly": "pnpm run test && pnpm run build",
     "size": "size-limit",
     "analyze": "size-limit --why"
   },
