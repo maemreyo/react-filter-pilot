@@ -1,5 +1,5 @@
 {
-  "name": "react-filter-pilot",
+  "name": "@matthew.ngo/react-filter-pilot",
   "version": "0.1.0",
   "description": "Powerful filtering, pagination, and sorting for React with TanStack Query integration",
   "author": "Htur Wehttam <matthew.ngo1114@gmail.com>",
