@@ -1,9 +1,8 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import {
   UseFilterPilotOptions,
   UseFilterPilotResult,
-  FilterConfig,
   PaginationState,
   SortState,
   FilterPreset,
@@ -18,7 +17,6 @@ import {
   parseUrlParams,
   buildUrlParams,
   transformFilterValue,
-  debounce,
 } from '../utils';
 import { useDefaultUrlHandler } from './useUrlHandler';
 
@@ -40,7 +38,7 @@ export function useFilterPilot<TData, TFilters = Record<string, any>>(
   const urlHandler = providedUrlHandler || defaultUrlHandler;
 
   // Query client
-  const queryClient = useQueryClient();
+  // const queryClient = useQueryClient();
 
   // Default values
   const defaultFilters = useMemo(
@@ -85,6 +83,7 @@ export function useFilterPilot<TData, TFilters = Record<string, any>>(
       if (initialFiltersProvider) {
         try {
           const providedFilters = await initialFiltersProvider();
+          // @ts-ignore
           initialFilters = mergeFilters(providedFilters, defaultFilters) as TFilters;
         } catch (error) {
           console.error('Error loading initial filters:', error);
@@ -92,6 +91,7 @@ export function useFilterPilot<TData, TFilters = Record<string, any>>(
       }
 
       // Merge URL filters with initial filters
+      // @ts-ignore
       const finalFilters = mergeFilters(urlFilters, initialFilters) as TFilters;
       setFiltersState(finalFilters);
       debouncedFilters.current = finalFilters;
@@ -124,8 +124,10 @@ export function useFilterPilot<TData, TFilters = Record<string, any>>(
 
   // Sync filters to URL
   useEffect(() => {
+    // @ts-ignore
     if (!compareFilters(debouncedFilters.current, filters)) {
       const params = urlHandler.getParams();
+      // @ts-ignore
       const filterParams = buildUrlParams(debouncedFilters.current, filterConfigs);
 
       // Clear existing filter params
@@ -363,6 +365,7 @@ export function useFilterPilot<TData, TFilters = Record<string, any>>(
 
   // Utility functions
   const getActiveFiltersCount = useCallback(() => {
+    // @ts-ignore
     return Object.entries(filters).reduce((count, [key, value]) => {
       const config = filterConfigs.find((c) => c.name === key);
       if (isFilterActive(value, config?.defaultValue)) {

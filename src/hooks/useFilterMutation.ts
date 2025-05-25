@@ -53,6 +53,9 @@ export function useFilterMutation<TData, TFilters, TMutationData, TMutationVaria
         
         return { previousData };
       }
+      
+      // Return undefined when no optimistic update is provided
+      return undefined;
     },
     onError: (error, variables, context) => {
       // Rollback on error

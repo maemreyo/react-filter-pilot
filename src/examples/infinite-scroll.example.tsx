@@ -1,5 +1,5 @@
 import React, { useRef, useEffect } from 'react';
-import { useFilterPilotInfinite } from 'react-filter-pilot';
+import { useFilterPilotInfinite } from '@matthew.ngo/react-filter-pilot';
 
 interface Post {
   id: string;

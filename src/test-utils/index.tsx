@@ -1,3 +1,4 @@
+import React from 'react';
 import { UseFilterPilotResult, FilterPreset } from '../types';
 
 /**
