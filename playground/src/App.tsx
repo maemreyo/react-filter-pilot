@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import './App.css';
-import { ProductList } from './examples';
+import { ProductList, BlogPostList, UserManagement } from './examples';
 
 function App() {
   const [activeExample, setActiveExample] = useState<string>('product-list');
@@ -14,28 +14,29 @@ function App() {
 
       <div className='example-selector'>
         <button
-          className={activeExample === 'basic-task-list' ? 'active' : ''}
-          onClick={() => setActiveExample('basic-task-list')}
-        >
-          Basic Task List
-        </button>
-        <button
-          className={activeExample === 'simple-task-list' ? 'active' : ''}
-          onClick={() => setActiveExample('simple-task-list')}
-        >
-          Simple Task List
-        </button>
-        <button
           className={activeExample === 'product-list' ? 'active' : ''}
           onClick={() => setActiveExample('product-list')}
         >
           Product List
         </button>
-        {/* Thêm các ví dụ khác ở đây khi cần */}
+        <button
+          className={activeExample === 'blog-post-list' ? 'active' : ''}
+          onClick={() => setActiveExample('blog-post-list')}
+        >
+          Blog Posts (Infinite)
+        </button>
+        <button
+          className={activeExample === 'user-management' ? 'active' : ''}
+          onClick={() => setActiveExample('user-management')}
+        >
+          User Management (Mutation)
+        </button>
       </div>
 
       <main>
         {activeExample === 'product-list' && <ProductList />}
+        {activeExample === 'blog-post-list' && <BlogPostList />}
+        {activeExample === 'user-management' && <UserManagement />}
       </main>
 
       <footer>
