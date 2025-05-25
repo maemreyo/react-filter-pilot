@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import './App.css';
 import { ProductList, BlogPostList, UserManagement, AdvancedExample } from './examples';
+import { SimpleMantineTableExample } from './examples/mantine-simple-example';
+import { MantineTableWithFilterPilot, AdvancedMantineTableExample } from './examples/mantine-table-example';
 
 function App() {
-  const [activeExample, setActiveExample] = useState<string>('advanced-example');
+  const [activeExample, setActiveExample] = useState<string>('mantine-simple');
 
   return (
     <div className='app-container'>
@@ -13,6 +15,24 @@ function App() {
       </header>
 
       <div className='example-selector'>
+        <button
+          className={activeExample === 'mantine-simple' ? 'active' : ''}
+          onClick={() => setActiveExample('mantine-simple')}
+        >
+          Mantine Simple Example
+        </button>
+        <button
+          className={activeExample === 'mantine-table' ? 'active' : ''}
+          onClick={() => setActiveExample('mantine-table')}
+        >
+          Mantine Table Example
+        </button>
+        <button
+          className={activeExample === 'mantine-advanced' ? 'active' : ''}
+          onClick={() => setActiveExample('mantine-advanced')}
+        >
+          Mantine Advanced Example
+        </button>
         <button
           className={activeExample === 'advanced-example' ? 'active' : ''}
           onClick={() => setActiveExample('advanced-example')}
@@ -40,6 +60,9 @@ function App() {
       </div>
 
       <main>
+        {activeExample === 'mantine-simple' && <SimpleMantineTableExample />}
+        {activeExample === 'mantine-table' && <MantineTableWithFilterPilot />}
+        {activeExample === 'mantine-advanced' && <AdvancedMantineTableExample />}
         {activeExample === 'advanced-example' && <AdvancedExample />}
         {activeExample === 'product-list' && <ProductList />}
         {activeExample === 'blog-post-list' && <BlogPostList />}

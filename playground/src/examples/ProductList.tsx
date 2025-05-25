@@ -52,6 +52,8 @@ const mockDatabase = generateMockProducts(150);
 
 // Mock API fetch function
 const fetchProducts = async ({ filters, pagination, sort }: any) => {
+  console.log("Fetching products...", filters, pagination, sort)
+
   // Simulate API delay
   await new Promise(resolve => setTimeout(resolve, 500));
 
