@@ -20,6 +20,7 @@ export interface FilterConfig {
   defaultValue?: any;
   urlKey?: string;
   debounceMs?: number;
+  syncWithUrl?: boolean;
   transformToUrl?: (value: any) => string;
   transformFromUrl?: (value: string) => any;
   transformForApi?: (value: any) => any;
@@ -31,6 +32,7 @@ export interface PaginationConfig {
   pageSizeOptions?: number[];
   syncWithUrl?: boolean;
   resetOnFilterChange?: boolean;
+  resetPageOnFilterChange?: (filterName: string) => boolean;
   external?: boolean;
 }
 
@@ -76,6 +78,13 @@ export interface FetchConfig<TData, TFilters = Record<string, any>> {
   refetchIntervalInBackground?: boolean;
   onSuccess?: (data: FetchResult<TData>) => void;
   onError?: (error: Error) => void;
+  
+  refetchOnMount?: boolean | "always";
+  retryOnMount?: boolean;
+  keepPreviousData?: boolean;
+  suspense?: boolean;
+  useErrorBoundary?: boolean;
+  
   // Additional TanStack Query options
   select?: (data: FetchResult<TData>) => FetchResult<TData>;
   placeholderData?:
@@ -89,6 +98,7 @@ export interface FetchConfig<TData, TFilters = Record<string, any>> {
   meta?: Record<string, unknown>;
   queryKeyHashFn?: (queryKey: unknown[]) => string;
   structuralSharing?: boolean | ((oldData: unknown, newData: unknown) => unknown);
+  throttleMs?: number;
 }
 
 export interface UrlHandler {
@@ -188,6 +198,9 @@ export interface QueryParams {
 export interface FetchControlConfig<TFilters> {
   // Basic fetch control
   enabled?: boolean | ((filters: TFilters) => boolean);
+  
+  // Debounce time for fetch control (ms)
+  debounceMs?: number;
 
   // Required filters - fetch only when these have values
   requiredFilters?: (keyof TFilters)[];

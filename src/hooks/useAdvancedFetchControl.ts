@@ -1,19 +1,45 @@
 import { FetchControlConfig } from '../types';
-import { useCallback, useMemo } from 'react';
+import { useCallback, useMemo, useRef, useEffect } from 'react';
 
 // Hook for fetch control
 export function useFetchControl<TFilters>(
   filters: TFilters,
   config?: FetchControlConfig<TFilters>
 ) {
+  // Refs for debouncing
+  const debouncedFilters = useRef<TFilters>(filters);
+  const debounceTimer = useRef<NodeJS.Timeout | null>(null);
+
+  // Update debounced filters with debounce
+  useEffect(() => {
+    if (config?.debounceMs) {
+      if (debounceTimer.current) {
+        clearTimeout(debounceTimer.current);
+      }
+
+      debounceTimer.current = setTimeout(() => {
+        debouncedFilters.current = filters;
+      }, config.debounceMs);
+
+      return () => {
+        if (debounceTimer.current) {
+          clearTimeout(debounceTimer.current);
+        }
+      };
+    } else {
+      debouncedFilters.current = filters;
+    }
+  }, [filters, config?.debounceMs]);
+
   // Check if fetch should be enabled
   const shouldFetch = useMemo(() => {
+    const filtersToCheck = config?.debounceMs ? debouncedFilters.current : filters;
     if (!config) return { enabled: true, reason: '' };
 
     // Basic enabled check
     if (config.enabled !== undefined) {
       const enabled =
-        typeof config.enabled === 'function' ? config.enabled(filters) : config.enabled;
+        typeof config.enabled === 'function' ? config.enabled(filtersToCheck) : config.enabled;
 
       if (!enabled) {
         return { enabled: false, reason: 'Fetch is disabled' };
@@ -23,7 +49,7 @@ export function useFetchControl<TFilters>(
     // Check required filters
     if (config.requiredFilters) {
       for (const filterKey of config.requiredFilters) {
-        const value = filters[filterKey];
+        const value = filtersToCheck[filterKey];
         if (
           value === undefined ||
           value === null ||

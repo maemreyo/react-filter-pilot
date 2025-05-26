@@ -137,9 +137,12 @@ export function useFilterPilot<TData, TFilters = Record<string, any>>(
       params.delete(urlKey);
     });
 
-    // Set new filter params
+    // Set new filter params - chỉ đồng bộ các filter có syncWithUrl !== false
     filterParams.forEach((value, key) => {
-      params.set(key, value);
+      const config = filterConfigs.find((c) => c.urlKey === key || c.name === key);
+      if (config?.syncWithUrl !== false) {
+        params.set(key, value);
+      }
     });
 
     // Add pagination params
@@ -292,7 +295,13 @@ export function useFilterPilot<TData, TFilters = Record<string, any>>(
 
           // Reset pagination if configured
           if (paginationConfig.resetOnFilterChange !== false) {
-            setPaginationState((prev) => ({ ...prev, page: 1 }));
+            // Nếu có resetPageOnFilterChange, kiểm tra xem filter này có cần reset page không
+            if (
+              !paginationConfig.resetPageOnFilterChange ||
+              paginationConfig.resetPageOnFilterChange(String(name))
+            ) {
+              setPaginationState((prev) => ({ ...prev, page: 1 }));
+            }
           }
         }, config.debounceMs);
       } else {
@@ -308,7 +317,13 @@ export function useFilterPilot<TData, TFilters = Record<string, any>>(
 
           // Reset pagination if configured
           if (paginationConfig.resetOnFilterChange !== false) {
-            setPaginationState((prev) => ({ ...prev, page: 1 }));
+            // Nếu có resetPageOnFilterChange, kiểm tra xem filter này có cần reset page không
+            if (
+              !paginationConfig.resetPageOnFilterChange ||
+              paginationConfig.resetPageOnFilterChange(String(name))
+            ) {
+              setPaginationState((prev) => ({ ...prev, page: 1 }));
+            }
           }
         });
       }
@@ -326,7 +341,18 @@ export function useFilterPilot<TData, TFilters = Record<string, any>>(
 
       // Reset pagination if configured
       if (paginationConfig.resetOnFilterChange !== false) {
-        setPaginationState((prev) => ({ ...prev, page: 1 }));
+        // Kiểm tra xem có filter nào cần reset page không
+        const shouldResetPage =
+          !paginationConfig.resetPageOnFilterChange ||
+          Object.keys(newFilters).some(
+            (key) =>
+              paginationConfig.resetPageOnFilterChange &&
+              paginationConfig.resetPageOnFilterChange(key)
+          );
+
+        if (shouldResetPage) {
+          setPaginationState((prev) => ({ ...prev, page: 1 }));
+        }
       }
     },
     [paginationConfig.resetOnFilterChange]
