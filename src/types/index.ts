@@ -126,6 +126,7 @@ export interface UseFilterPilotOptions<TData, TFilters = Record<string, any>> {
   urlHandler?: UrlHandler;
   initialFiltersProvider?: () => Promise<Partial<TFilters>>;
   enablePresets?: boolean;
+  fetchControl?: FetchControlConfig<TFilters>;
 }
 
 export interface UseFilterPilotResult<TData, TFilters = Record<string, any>> {
@@ -169,9 +170,62 @@ export interface UseFilterPilotResult<TData, TFilters = Record<string, any>> {
   getActiveFiltersCount: () => number;
   hasActiveFilters: () => boolean;
   getQueryKey: () => unknown[];
+  
+  // Fetch control
+  fetchControl?: {
+    isEnabled: boolean;
+    reason: string;
+    retry: () => void;
+  };
 }
 
 // Additional types for query params
 export interface QueryParams {
   [key: string]: string | string[] | undefined;
+}
+
+// Types for fetch control
+export interface FetchControlConfig<TFilters> {
+  // Basic fetch control
+  enabled?: boolean | ((filters: TFilters) => boolean);
+
+  // Required filters - fetch only when these have values
+  requiredFilters?: (keyof TFilters)[];
+
+  // Conditional requirements - more complex logic
+  conditionalRequirements?: Array<{
+    when: (filters: TFilters) => boolean;
+    require: (keyof TFilters)[];
+    message?: string;
+  }>;
+
+  // Minimum values for numeric/string filters
+  minimumValues?: Partial<{
+    [K in keyof TFilters]: TFilters[K] extends number
+      ? number
+      : TFilters[K] extends string
+        ? number
+        : never;
+  }>;
+
+  // Custom validation
+  validate?: (filters: TFilters) => { valid: boolean; message?: string };
+
+  // Hooks
+  onFetchStart?: (filters: TFilters) => void;
+  onFetchEnd?: (result: any) => void;
+  onFetchError?: (error: Error, filters: TFilters) => void;
+  onFetchSkipped?: (reason: string, filters: TFilters) => void;
+}
+
+export interface UseFilterPilotOptionsExtended<TData, TFilters> {
+  filterConfigs: FilterConfig[];
+  paginationConfig?: PaginationConfig;
+  sortConfig?: SortConfig;
+  fetchConfig: FetchConfig<TData, TFilters>;
+  urlHandler?: UrlHandler;
+  initialFiltersProvider?: () => Promise<Partial<TFilters>>;
+  enablePresets?: boolean;
+
+  fetchControl?: FetchControlConfig<TFilters>;
 }

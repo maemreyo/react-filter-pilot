@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import './App.css';
-import { ProductList, BlogPostList, UserManagement, AdvancedExample } from './examples';
+import { ProductList, BlogPostList, UserManagement, AdvancedExample, FetchControlExamples } from './examples';
 import { SimpleMantineTableExample } from './examples/mantine-simple-example';
 import { MantineTableWithFilterPilot, AdvancedMantineTableExample } from './examples/mantine-table-example';
 
@@ -40,6 +40,12 @@ function App() {
           Advanced Example
         </button>
         <button
+          className={activeExample === 'fetch-control' ? 'active' : ''}
+          onClick={() => setActiveExample('fetch-control')}
+        >
+          Fetch Control Examples
+        </button>
+        <button
           className={activeExample === 'product-list' ? 'active' : ''}
           onClick={() => setActiveExample('product-list')}
         >
@@ -64,6 +70,7 @@ function App() {
         {activeExample === 'mantine-table' && <MantineTableWithFilterPilot />}
         {activeExample === 'mantine-advanced' && <AdvancedMantineTableExample />}
         {activeExample === 'advanced-example' && <AdvancedExample />}
+        {activeExample === 'fetch-control' && <FetchControlExamples />}
         {activeExample === 'product-list' && <ProductList />}
         {activeExample === 'blog-post-list' && <BlogPostList />}
         {activeExample === 'user-management' && <UserManagement />}

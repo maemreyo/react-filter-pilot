@@ -18,6 +18,7 @@ import {
   transformFilterValue,
 } from '../utils';
 import { useDefaultUrlHandler } from './useUrlHandler';
+import { useFetchControl } from './useAdvancedFetchControl';
 
 export function useFilterPilot<TData, TFilters = Record<string, any>>(
   options: UseFilterPilotOptions<TData, TFilters>
@@ -173,6 +174,12 @@ export function useFilterPilot<TData, TFilters = Record<string, any>>(
     [debouncedFilters.current, pagination, sort, fetchConfig.queryKey, urlSyncTrigger]
   );
 
+  // Fetch control
+  const { shouldFetch, fetchReason, controlledFetch } = useFetchControl(
+    debouncedFilters.current,
+    options.fetchControl
+  );
+
   // Fetch function
   const fetchData = useCallback(async () => {
     const params: FetchParams<TFilters> = {
@@ -194,14 +201,15 @@ export function useFilterPilot<TData, TFilters = Record<string, any>>(
       (transformedParams.filters as any)[key] = transformedValue;
     });
 
-    return fetchConfig.fetchFn(transformedParams);
-  }, [pagination, sort, filterConfigs, fetchConfig.fetchFn]);
+    // Wrap with fetch control
+    return controlledFetch(() => fetchConfig.fetchFn(transformedParams));
+  }, [pagination, sort, filterConfigs, fetchConfig.fetchFn, controlledFetch]);
 
   // Query
   const query = useQuery<FetchResult<TData>, Error, FetchResult<TData>, unknown[]>({
     queryKey,
     queryFn: fetchData,
-    enabled: fetchConfig.enabled !== false,
+    enabled: fetchConfig.enabled !== false && shouldFetch,
     staleTime: fetchConfig.staleTime,
     gcTime: fetchConfig.gcTime || fetchConfig.cacheTime,
     refetchOnWindowFocus: fetchConfig.refetchOnWindowFocus,
@@ -494,5 +502,12 @@ export function useFilterPilot<TData, TFilters = Record<string, any>>(
     getActiveFiltersCount,
     hasActiveFilters,
     getQueryKey,
+    
+    // Fetch control
+    fetchControl: {
+      isEnabled: shouldFetch,
+      reason: fetchReason,
+      retry: query.refetch,
+    },
   };
 }

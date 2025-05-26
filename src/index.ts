@@ -2,6 +2,12 @@
 export { useFilterPilot } from './hooks/useFilterPilot';
 export { useFilterPilotInfinite } from './hooks/useFilterPilotInfinite';
 export { useFilterMutation } from './hooks/useFilterMutation';
+export {
+  useFetchControl,
+  useRequiredFilters,
+  useDependentFilters,
+  useFilterCombinations,
+} from './hooks/useAdvancedFetchControl';
 
 // URL Adapters
 export { useReactRouterDomUrlHandler } from './adapters/reactRouterDom';
@@ -9,11 +15,7 @@ export { useNextJsUrlHandler } from './adapters/nextJs';
 export { useNextJsPagesUrlHandler } from './adapters/nextJsPages';
 export { useNextJsAppCustomUrlHandler } from './adapters/nextJsAppCustom';
 export { useDefaultUrlHandler } from './hooks/useUrlHandler';
-export { 
-  createUrlHandler,
-  useHashUrlHandler,
-  createMemoryUrlHandler 
-} from './adapters/universal';
+export { createUrlHandler, useHashUrlHandler, createMemoryUrlHandler } from './adapters/universal';
 
 // Type exports
 export type {
