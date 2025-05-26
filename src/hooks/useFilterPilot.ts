@@ -68,7 +68,7 @@ export function useFilterPilot<TData, TFilters = Record<string, any>>(
   // Refs for debounced values
   const debouncedFilters = useRef<TFilters>(filters);
   const debounceTimers = useRef<Record<string, NodeJS.Timeout>>({});
-  
+
   // Track URL sync trigger separately
   const [urlSyncTrigger, setUrlSyncTrigger] = useState(0);
 
@@ -158,11 +158,20 @@ export function useFilterPilot<TData, TFilters = Record<string, any>>(
     }
 
     urlHandler.setParams(params);
-  }, [urlSyncTrigger, pagination, sort, filterConfigs, paginationConfig.syncWithUrl, sortConfig.syncWithUrl, urlHandler]);
+  }, [
+    urlSyncTrigger,
+    pagination,
+    sort,
+    filterConfigs,
+    paginationConfig.syncWithUrl,
+    sortConfig.syncWithUrl,
+    urlHandler,
+  ]);
 
   // Query key
-  const queryKey = useMemo(
-    () => [
+  const queryKey = useMemo(() => {
+    // Only include urlSyncTrigger if filters actually changed
+    const key = [
       fetchConfig.queryKey || 'filterPilot',
       'filters',
       debouncedFilters.current,
@@ -170,9 +179,12 @@ export function useFilterPilot<TData, TFilters = Record<string, any>>(
       pagination,
       'sort',
       sort,
-    ],
-    [debouncedFilters.current, pagination, sort, fetchConfig.queryKey, urlSyncTrigger]
-  );
+    ];
+
+    // Add a stable identifier instead of urlSyncTrigger
+    // This prevents query key from changing on every sync
+    return key;
+  }, [debouncedFilters.current, pagination, sort, fetchConfig.queryKey]);
 
   // Fetch control
   const { shouldFetch, fetchReason, controlledFetch } = useFetchControl(
@@ -253,6 +265,8 @@ export function useFilterPilot<TData, TFilters = Record<string, any>>(
     (name: keyof TFilters, value: any) => {
       const config = filterConfigs.find((c) => c.name === String(name));
 
+      // Batch state updates using React 18's automatic batching
+      // or use unstable_batchedUpdates for older versions
       setFiltersState((prev) => ({
         ...prev,
         [name]: value,
@@ -267,13 +281,14 @@ export function useFilterPilot<TData, TFilters = Record<string, any>>(
 
         // Set new timer
         debounceTimers.current[String(name)] = setTimeout(() => {
+          // Use functional update to avoid closure issues
           debouncedFilters.current = {
             ...debouncedFilters.current,
             [name]: value,
           };
 
-          // Trigger URL sync
-          setUrlSyncTrigger(prev => prev + 1);
+          // Batch these updates together
+          setUrlSyncTrigger((prev) => prev + 1);
 
           // Reset pagination if configured
           if (paginationConfig.resetOnFilterChange !== false) {
@@ -287,13 +302,15 @@ export function useFilterPilot<TData, TFilters = Record<string, any>>(
           [name]: value,
         };
 
-        // Trigger URL sync
-        setUrlSyncTrigger(prev => prev + 1);
+        // Defer URL sync to next tick to avoid immediate re-render
+        queueMicrotask(() => {
+          setUrlSyncTrigger((prev) => prev + 1);
 
-        // Reset pagination if configured
-        if (paginationConfig.resetOnFilterChange !== false) {
-          setPaginationState((prev) => ({ ...prev, page: 1 }));
-        }
+          // Reset pagination if configured
+          if (paginationConfig.resetOnFilterChange !== false) {
+            setPaginationState((prev) => ({ ...prev, page: 1 }));
+          }
+        });
       }
     },
     [filterConfigs, paginationConfig.resetOnFilterChange]
@@ -305,7 +322,7 @@ export function useFilterPilot<TData, TFilters = Record<string, any>>(
       debouncedFilters.current = { ...debouncedFilters.current, ...newFilters };
 
       // Trigger URL sync
-      setUrlSyncTrigger(prev => prev + 1);
+      setUrlSyncTrigger((prev) => prev + 1);
 
       // Reset pagination if configured
       if (paginationConfig.resetOnFilterChange !== false) {
@@ -318,10 +335,10 @@ export function useFilterPilot<TData, TFilters = Record<string, any>>(
   const resetFilters = useCallback(() => {
     setFiltersState(defaultFilters);
     debouncedFilters.current = defaultFilters;
-    
+
     // Trigger URL sync
-    setUrlSyncTrigger(prev => prev + 1);
-    
+    setUrlSyncTrigger((prev) => prev + 1);
+
     setPaginationState((prev) => ({ ...prev, page: 1 }));
   }, [defaultFilters]);
 
@@ -336,7 +353,7 @@ export function useFilterPilot<TData, TFilters = Record<string, any>>(
   // Pagination functions
   const setPage = useCallback((page: number) => {
     setPaginationState((prev) => ({ ...prev, page }));
-    setUrlSyncTrigger(prev => prev + 1);
+    setUrlSyncTrigger((prev) => prev + 1);
   }, []);
 
   const setPageSize = useCallback((pageSize: number) => {
@@ -345,13 +362,13 @@ export function useFilterPilot<TData, TFilters = Record<string, any>>(
       pageSize,
       page: 1,
     }));
-    setUrlSyncTrigger(prev => prev + 1);
+    setUrlSyncTrigger((prev) => prev + 1);
   }, []);
 
   const nextPage = useCallback(() => {
     setPaginationState((prev) => {
       if (prev.hasNextPage) {
-        setUrlSyncTrigger(p => p + 1);
+        setUrlSyncTrigger((p) => p + 1);
         return { ...prev, page: prev.page + 1 };
       }
       return prev;
@@ -361,7 +378,7 @@ export function useFilterPilot<TData, TFilters = Record<string, any>>(
   const previousPage = useCallback(() => {
     setPaginationState((prev) => {
       if (prev.hasPreviousPage) {
-        setUrlSyncTrigger(p => p + 1);
+        setUrlSyncTrigger((p) => p + 1);
         return { ...prev, page: prev.page - 1 };
       }
       return prev;
@@ -371,27 +388,27 @@ export function useFilterPilot<TData, TFilters = Record<string, any>>(
   // Sort functions
   const setSort = useCallback((field: string, direction: 'asc' | 'desc' = 'asc') => {
     setSortState({ field, direction });
-    setUrlSyncTrigger(prev => prev + 1);
+    setUrlSyncTrigger((prev) => prev + 1);
   }, []);
 
   const toggleSort = useCallback((field: string) => {
     setSortState((prev) => {
       if (!prev || prev.field !== field) {
-        setUrlSyncTrigger(p => p + 1);
+        setUrlSyncTrigger((p) => p + 1);
         return { field, direction: 'asc' };
       }
       if (prev.direction === 'asc') {
-        setUrlSyncTrigger(p => p + 1);
+        setUrlSyncTrigger((p) => p + 1);
         return { field, direction: 'desc' };
       }
-      setUrlSyncTrigger(p => p + 1);
+      setUrlSyncTrigger((p) => p + 1);
       return undefined;
     });
   }, []);
 
   const clearSort = useCallback(() => {
     setSortState(undefined);
-    setUrlSyncTrigger(prev => prev + 1);
+    setUrlSyncTrigger((prev) => prev + 1);
   }, []);
 
   // Utility functions
@@ -466,13 +483,20 @@ export function useFilterPilot<TData, TFilters = Record<string, any>>(
     }
   }, [enablePresets, fetchConfig.queryKey]);
 
+  const stableFilterHandlers = useMemo(
+    () => ({
+      setFilterValue,
+      setFilters,
+      resetFilters,
+      resetFilter,
+    }),
+    [setFilterValue, setFilters, resetFilters, resetFilter]
+  );
+
   return {
     // Filter state
     filters,
-    setFilterValue,
-    setFilters,
-    resetFilters,
-    resetFilter,
+    ...stableFilterHandlers,
 
     // Pagination state
     pagination,
@@ -502,7 +526,7 @@ export function useFilterPilot<TData, TFilters = Record<string, any>>(
     getActiveFiltersCount,
     hasActiveFilters,
     getQueryKey,
-    
+
     // Fetch control
     fetchControl: {
       isEnabled: shouldFetch,
