@@ -68,7 +68,7 @@ export interface FetchResult<TData> {
 
 export interface FetchConfig<TData, TFilters = Record<string, any>> {
   fetchFn: (params: FetchParams<TFilters>) => Promise<FetchResult<TData>>;
-  queryKey?: string;
+  queryKey?: string | (string | number | boolean | object)[];
   enabled?: boolean;
   staleTime?: number;
   cacheTime?: number; // gcTime in v5
@@ -78,13 +78,13 @@ export interface FetchConfig<TData, TFilters = Record<string, any>> {
   refetchIntervalInBackground?: boolean;
   onSuccess?: (data: FetchResult<TData>) => void;
   onError?: (error: Error) => void;
-  
-  refetchOnMount?: boolean | "always";
+
+  refetchOnMount?: boolean | 'always';
   retryOnMount?: boolean;
   keepPreviousData?: boolean;
   suspense?: boolean;
   useErrorBoundary?: boolean;
-  
+
   // Additional TanStack Query options
   select?: (data: FetchResult<TData>) => FetchResult<TData>;
   placeholderData?:
@@ -180,7 +180,7 @@ export interface UseFilterPilotResult<TData, TFilters = Record<string, any>> {
   getActiveFiltersCount: () => number;
   hasActiveFilters: () => boolean;
   getQueryKey: () => unknown[];
-  
+
   // Fetch control
   fetchControl?: {
     isEnabled: boolean;
@@ -198,7 +198,7 @@ export interface QueryParams {
 export interface FetchControlConfig<TFilters> {
   // Basic fetch control
   enabled?: boolean | ((filters: TFilters) => boolean);
-  
+
   // Debounce time for fetch control (ms)
   debounceMs?: number;
 
@@ -242,3 +242,4 @@ export interface UseFilterPilotOptionsExtended<TData, TFilters> {
 
   fetchControl?: FetchControlConfig<TFilters>;
 }
+

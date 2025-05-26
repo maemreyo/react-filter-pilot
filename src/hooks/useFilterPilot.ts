@@ -19,6 +19,7 @@ import {
 } from '../utils';
 import { useDefaultUrlHandler } from './useUrlHandler';
 import { useFetchControl } from './useAdvancedFetchControl';
+import { normalizeQueryKey } from '@/utils/normalize';
 
 export function useFilterPilot<TData, TFilters = Record<string, any>>(
   options: UseFilterPilotOptions<TData, TFilters>
@@ -173,9 +174,9 @@ export function useFilterPilot<TData, TFilters = Record<string, any>>(
 
   // Query key
   const queryKey = useMemo(() => {
-    // Only include urlSyncTrigger if filters actually changed
-    const key = [
-      fetchConfig.queryKey || 'filterPilot',
+    const baseKey = normalizeQueryKey(fetchConfig.queryKey);
+    return [
+      ...baseKey,
       'filters',
       debouncedFilters.current,
       'pagination',
@@ -183,11 +184,7 @@ export function useFilterPilot<TData, TFilters = Record<string, any>>(
       'sort',
       sort,
     ];
-
-    // Add a stable identifier instead of urlSyncTrigger
-    // This prevents query key from changing on every sync
-    return key;
-  }, [debouncedFilters.current, pagination, sort, fetchConfig.queryKey]);
+  }, [debouncedFilters.current, pagination, sort, fetchConfig.queryKey, urlSyncTrigger]);
 
   // Fetch control
   const { shouldFetch, fetchReason, controlledFetch } = useFetchControl(
