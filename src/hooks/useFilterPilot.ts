@@ -19,7 +19,7 @@ import {
 } from '../utils';
 import { useDefaultUrlHandler } from './useUrlHandler';
 import { useFetchControl } from './useAdvancedFetchControl';
-import { normalizeQueryKey } from '@/utils/normalize';
+import { normalizeQueryKey } from '../utils/normalize';
 
 export function useFilterPilot<TData, TFilters = Record<string, any>>(
   options: UseFilterPilotOptions<TData, TFilters>
