@@ -13,7 +13,6 @@ import {
   getDefaultFilters,
   isFilterActive,
   mergeFilters,
-  compareFilters,
   parseUrlParams,
   buildUrlParams,
   transformFilterValue,
@@ -36,9 +35,6 @@ export function useFilterPilot<TData, TFilters = Record<string, any>>(
   // URL handler
   const defaultUrlHandler = useDefaultUrlHandler();
   const urlHandler = providedUrlHandler || defaultUrlHandler;
-
-  // Query client
-  // const queryClient = useQueryClient();
 
   // Default values
   const defaultFilters = useMemo(
@@ -71,6 +67,9 @@ export function useFilterPilot<TData, TFilters = Record<string, any>>(
   // Refs for debounced values
   const debouncedFilters = useRef<TFilters>(filters);
   const debounceTimers = useRef<Record<string, NodeJS.Timeout>>({});
+  
+  // Track URL sync trigger separately
+  const [urlSyncTrigger, setUrlSyncTrigger] = useState(0);
 
   // Initialize from URL on mount
   useEffect(() => {
@@ -122,40 +121,43 @@ export function useFilterPilot<TData, TFilters = Record<string, any>>(
     initializeFromUrl();
   }, []); // Only run on mount
 
-  // Sync filters to URL
+  // Sync to URL when state changes
   useEffect(() => {
+    // Skip on initial mount
+    if (urlSyncTrigger === 0) return;
+
+    const params = urlHandler.getParams();
     // @ts-ignore
-    if (!compareFilters(debouncedFilters.current, filters)) {
-      const params = urlHandler.getParams();
-      // @ts-ignore
-      const filterParams = buildUrlParams(debouncedFilters.current, filterConfigs);
+    const filterParams = buildUrlParams(debouncedFilters.current, filterConfigs);
 
-      // Clear existing filter params
-      filterConfigs.forEach((config) => {
-        const urlKey = config.urlKey || config.name;
-        params.delete(urlKey);
-      });
+    // Clear existing filter params
+    filterConfigs.forEach((config) => {
+      const urlKey = config.urlKey || config.name;
+      params.delete(urlKey);
+    });
 
-      // Set new filter params
-      filterParams.forEach((value, key) => {
-        params.set(key, value);
-      });
+    // Set new filter params
+    filterParams.forEach((value, key) => {
+      params.set(key, value);
+    });
 
-      // Add pagination params
-      if (paginationConfig.syncWithUrl !== false) {
-        params.set('page', String(pagination.page));
-        params.set('pageSize', String(pagination.pageSize));
-      }
-
-      // Add sort params
-      if (sortConfig.syncWithUrl !== false && sort) {
-        params.set('sortBy', sort.field);
-        params.set('sortOrder', sort.direction);
-      }
-
-      urlHandler.setParams(params);
+    // Add pagination params
+    if (paginationConfig.syncWithUrl !== false) {
+      params.set('page', String(pagination.page));
+      params.set('pageSize', String(pagination.pageSize));
     }
-  }, [debouncedFilters.current, pagination, sort]);
+
+    // Add sort params
+    if (sortConfig.syncWithUrl !== false && sort) {
+      params.set('sortBy', sort.field);
+      params.set('sortOrder', sort.direction);
+    } else if (sortConfig.syncWithUrl !== false) {
+      params.delete('sortBy');
+      params.delete('sortOrder');
+    }
+
+    urlHandler.setParams(params);
+  }, [urlSyncTrigger, pagination, sort, filterConfigs, paginationConfig.syncWithUrl, sortConfig.syncWithUrl, urlHandler]);
 
   // Query key
   const queryKey = useMemo(
@@ -168,7 +170,7 @@ export function useFilterPilot<TData, TFilters = Record<string, any>>(
       'sort',
       sort,
     ],
-    [debouncedFilters.current, pagination, sort, fetchConfig.queryKey]
+    [debouncedFilters.current, pagination, sort, fetchConfig.queryKey, urlSyncTrigger]
   );
 
   // Fetch function
@@ -201,7 +203,7 @@ export function useFilterPilot<TData, TFilters = Record<string, any>>(
     queryFn: fetchData,
     enabled: fetchConfig.enabled !== false,
     staleTime: fetchConfig.staleTime,
-    gcTime: fetchConfig.gcTime || fetchConfig.cacheTime, // Support both v4 and v5
+    gcTime: fetchConfig.gcTime || fetchConfig.cacheTime,
     refetchOnWindowFocus: fetchConfig.refetchOnWindowFocus,
     refetchInterval: fetchConfig.refetchInterval,
     refetchIntervalInBackground: fetchConfig.refetchIntervalInBackground,
@@ -220,7 +222,6 @@ export function useFilterPilot<TData, TFilters = Record<string, any>>(
   // Handle success/error with useEffect to support both v4 and v5
   useEffect(() => {
     if (query.isSuccess && query.data) {
-      // Update pagination state with total records
       setPaginationState((prev) => ({
         ...prev,
         totalRecords: query.data.totalRecords,
@@ -263,6 +264,9 @@ export function useFilterPilot<TData, TFilters = Record<string, any>>(
             [name]: value,
           };
 
+          // Trigger URL sync
+          setUrlSyncTrigger(prev => prev + 1);
+
           // Reset pagination if configured
           if (paginationConfig.resetOnFilterChange !== false) {
             setPaginationState((prev) => ({ ...prev, page: 1 }));
@@ -274,6 +278,9 @@ export function useFilterPilot<TData, TFilters = Record<string, any>>(
           ...debouncedFilters.current,
           [name]: value,
         };
+
+        // Trigger URL sync
+        setUrlSyncTrigger(prev => prev + 1);
 
         // Reset pagination if configured
         if (paginationConfig.resetOnFilterChange !== false) {
@@ -289,6 +296,9 @@ export function useFilterPilot<TData, TFilters = Record<string, any>>(
       setFiltersState((prev) => ({ ...prev, ...newFilters }));
       debouncedFilters.current = { ...debouncedFilters.current, ...newFilters };
 
+      // Trigger URL sync
+      setUrlSyncTrigger(prev => prev + 1);
+
       // Reset pagination if configured
       if (paginationConfig.resetOnFilterChange !== false) {
         setPaginationState((prev) => ({ ...prev, page: 1 }));
@@ -300,6 +310,10 @@ export function useFilterPilot<TData, TFilters = Record<string, any>>(
   const resetFilters = useCallback(() => {
     setFiltersState(defaultFilters);
     debouncedFilters.current = defaultFilters;
+    
+    // Trigger URL sync
+    setUrlSyncTrigger(prev => prev + 1);
+    
     setPaginationState((prev) => ({ ...prev, page: 1 }));
   }, [defaultFilters]);
 
@@ -314,19 +328,22 @@ export function useFilterPilot<TData, TFilters = Record<string, any>>(
   // Pagination functions
   const setPage = useCallback((page: number) => {
     setPaginationState((prev) => ({ ...prev, page }));
+    setUrlSyncTrigger(prev => prev + 1);
   }, []);
 
   const setPageSize = useCallback((pageSize: number) => {
     setPaginationState((prev) => ({
       ...prev,
       pageSize,
-      page: 1, // Reset to first page when changing page size
+      page: 1,
     }));
+    setUrlSyncTrigger(prev => prev + 1);
   }, []);
 
   const nextPage = useCallback(() => {
     setPaginationState((prev) => {
       if (prev.hasNextPage) {
+        setUrlSyncTrigger(p => p + 1);
         return { ...prev, page: prev.page + 1 };
       }
       return prev;
@@ -336,6 +353,7 @@ export function useFilterPilot<TData, TFilters = Record<string, any>>(
   const previousPage = useCallback(() => {
     setPaginationState((prev) => {
       if (prev.hasPreviousPage) {
+        setUrlSyncTrigger(p => p + 1);
         return { ...prev, page: prev.page - 1 };
       }
       return prev;
@@ -345,22 +363,27 @@ export function useFilterPilot<TData, TFilters = Record<string, any>>(
   // Sort functions
   const setSort = useCallback((field: string, direction: 'asc' | 'desc' = 'asc') => {
     setSortState({ field, direction });
+    setUrlSyncTrigger(prev => prev + 1);
   }, []);
 
   const toggleSort = useCallback((field: string) => {
     setSortState((prev) => {
       if (!prev || prev.field !== field) {
+        setUrlSyncTrigger(p => p + 1);
         return { field, direction: 'asc' };
       }
       if (prev.direction === 'asc') {
+        setUrlSyncTrigger(p => p + 1);
         return { field, direction: 'desc' };
       }
-      return undefined; // Remove sort
+      setUrlSyncTrigger(p => p + 1);
+      return undefined;
     });
   }, []);
 
   const clearSort = useCallback(() => {
     setSortState(undefined);
+    setUrlSyncTrigger(prev => prev + 1);
   }, []);
 
   // Utility functions
@@ -395,7 +418,6 @@ export function useFilterPilot<TData, TFilters = Record<string, any>>(
         };
         setPresets((prev) => [...prev, newPreset]);
 
-        // Save to localStorage
         try {
           const key = `filterPilot_presets_${fetchConfig.queryKey || 'default'}`;
           localStorage.setItem(key, JSON.stringify([...presets, newPreset]));
@@ -409,7 +431,6 @@ export function useFilterPilot<TData, TFilters = Record<string, any>>(
       deletePreset: (id: string) => {
         setPresets((prev) => prev.filter((p) => p.id !== id));
 
-        // Update localStorage
         try {
           const key = `filterPilot_presets_${fetchConfig.queryKey || 'default'}`;
           const updatedPresets = presets.filter((p) => p.id !== id);

@@ -13,6 +13,7 @@ import {
   parseUrlParams,
   buildUrlParams,
   transformFilterValue,
+  mergeFilters,
 } from '../utils';
 import { useDefaultUrlHandler } from './useUrlHandler';
 
@@ -55,7 +56,7 @@ export interface UseFilterPilotInfiniteResult<TData, TFilters> {
   clearSort: () => void;
 
   // Data & Query state
-  data: TData[]; // Flattened pages
+  data: TData[]; // Flattened data from pages
   isLoading: boolean;
   isError: boolean;
   error?: Error;
@@ -103,9 +104,6 @@ export function useFilterPilotInfinite<TData, TFilters = Record<string, any>>(
   const defaultUrlHandler = useDefaultUrlHandler();
   const urlHandler = providedUrlHandler || defaultUrlHandler;
 
-  // Query client
-  // const queryClient = useQueryClient();
-
   // Default values
   const defaultFilters = useMemo(
     () => getDefaultFilters(filterConfigs) as TFilters,
@@ -128,6 +126,9 @@ export function useFilterPilotInfinite<TData, TFilters = Record<string, any>>(
   const debouncedFilters = useRef<TFilters>(filters);
   const debounceTimers = useRef<Record<string, NodeJS.Timeout>>({});
 
+  // Track URL sync trigger separately
+  const [urlSyncTrigger, setUrlSyncTrigger] = useState(0);
+
   // Initialize from URL on mount
   useEffect(() => {
     const initializeFromUrl = async () => {
@@ -139,16 +140,18 @@ export function useFilterPilotInfinite<TData, TFilters = Record<string, any>>(
       if (initialFiltersProvider) {
         try {
           const providedFilters = await initialFiltersProvider();
-          initialFilters = { ...defaultFilters, ...providedFilters } as TFilters;
+          // @ts-ignore
+          initialFilters = mergeFilters(providedFilters, defaultFilters) as TFilters;
         } catch (error) {
           console.error('Error loading initial filters:', error);
         }
       }
 
       // Merge URL filters with initial filters
-      const finalFilters = { ...initialFilters, ...urlFilters } as TFilters;
+      // @ts-ignore
+      const finalFilters = mergeFilters(urlFilters, initialFilters) as TFilters;
       setFiltersState(finalFilters);
-      debouncedFilters.current = finalFilters;
+      debouncedFilters.current = finalFilters; // Sync debouncedFilters immediately
 
       // Initialize sort from URL
       if (sortConfig.syncWithUrl !== false) {
@@ -161,13 +164,26 @@ export function useFilterPilotInfinite<TData, TFilters = Record<string, any>>(
           });
         }
       }
+      // Mark as initialized, so the URL sync effect can run from the next change.
+      // Important: setUrlSyncTrigger(1) would cause the URL sync effect to run immediately after initialization,
+      // which might not be desired if you only want it to run on user interaction.
+      // If you only want it to run when filters/sort change *after* initialization, this line is not needed.
+      // Or, you might want more complex logic to decide when to sync for the first time.
+      // To be consistent with useFilterPilot, we won't trigger here, but let the set... functions trigger.
     };
 
     initializeFromUrl();
-  }, []);
+  }, []); // Only run on mount
 
-  // Sync to URL
+  // Sync to URL when state changes
   useEffect(() => {
+    // Skip on initial mount if urlSyncTrigger is still 0
+    if (urlSyncTrigger === 0) {
+      console.log('[useFilterPilotInfinite] Skipping initial URL sync (urlSyncTrigger === 0)');
+      return;
+    }
+    console.log('[useFilterPilotInfinite] Performing URL sync, trigger:', urlSyncTrigger);
+
     const params = urlHandler.getParams();
     // @ts-ignore
     const filterParams = buildUrlParams(debouncedFilters.current, filterConfigs);
@@ -187,21 +203,28 @@ export function useFilterPilotInfinite<TData, TFilters = Record<string, any>>(
     if (sortConfig.syncWithUrl !== false && sort) {
       params.set('sortBy', sort.field);
       params.set('sortOrder', sort.direction);
+    } else if (sortConfig.syncWithUrl !== false) {
+      // Clear sort params if sort is cleared and sync is enabled
+      params.delete('sortBy');
+      params.delete('sortOrder');
     }
 
     urlHandler.setParams(params);
-  }, [debouncedFilters.current, sort]);
+  }, [urlSyncTrigger, sort, filterConfigs, sortConfig.syncWithUrl, urlHandler]); // debouncedFilters.current is no longer a direct dependency
 
   // Query key
   const queryKey = useMemo(
     () => [
       fetchConfig.queryKey || 'filterPilotInfinite',
       'filters',
-      debouncedFilters.current,
+      debouncedFilters.current, // Keep debouncedFilters.current here as the query should depend on the debounced value
       'sort',
       sort,
+      // urlSyncTrigger could be added here if you want the queryKey to change every time the URL is synced,
+      // but usually, the queryKey should only depend on parameters that actually affect data fetching.
+      // If debouncedFilters.current is updated correctly before urlSyncTrigger increments, it's not needed.
     ],
-    [debouncedFilters.current, sort, fetchConfig.queryKey]
+    [debouncedFilters.current, sort, fetchConfig.queryKey, urlSyncTrigger] // Add urlSyncTrigger to ensure queryKey updates
   );
 
   // Fetch function
@@ -209,9 +232,9 @@ export function useFilterPilotInfinite<TData, TFilters = Record<string, any>>(
     async ({ pageParam }: { pageParam?: unknown }) => {
       const params: FetchParams<TFilters> & { cursor?: string | number | null } = {
         filters: debouncedFilters.current,
-        pagination: {
-          page: 1, // Not used in infinite query
-          pageSize: 20, // Default page size for infinite
+        pagination: { // Pagination is not really used for URL sync in infinite, but needed for API
+          page: 1, 
+          pageSize: 20, // Default page size or from config if available
         },
         sort,
         cursor: pageParam as string | number | null,
@@ -226,10 +249,10 @@ export function useFilterPilotInfinite<TData, TFilters = Record<string, any>>(
         const transformedValue = transformFilterValue(value, config?.transformForApi);
         (transformedParams.filters as any)[key] = transformedValue;
       });
-
+      console.log('[useFilterPilotInfinite] Fetching data with params:', transformedParams);
       return fetchConfig.fetchFn(transformedParams);
     },
-    [sort, filterConfigs, fetchConfig.fetchFn]
+    [sort, filterConfigs, fetchConfig.fetchFn, debouncedFilters.current] // Add debouncedFilters.current
   );
 
   // Infinite Query
@@ -250,7 +273,7 @@ export function useFilterPilotInfinite<TData, TFilters = Record<string, any>>(
     select: fetchConfig.select
       ? (data) => ({
           ...data,
-          pages: data.pages.map((page) => fetchConfig.select!(page)),
+          pages: data.pages.map((page) => fetchConfig.select!(page as InfiniteResult<TData>)), // Need to cast page type
         })
       : undefined,
     retry: fetchConfig.retry,
@@ -265,13 +288,13 @@ export function useFilterPilotInfinite<TData, TFilters = Record<string, any>>(
       // @ts-ignore
       fetchConfig.onSuccess?.(query.data.pages[query.data.pages.length - 1]);
     }
-  }, [query.isSuccess, query.data]);
+  }, [query.isSuccess, query.data, fetchConfig.onSuccess]);
 
   useEffect(() => {
     if (query.isError && query.error) {
       fetchConfig.onError?.(query.error);
     }
-  }, [query.isError, query.error]);
+  }, [query.isError, query.error, fetchConfig.onError]);
 
   // Filter functions
   const setFilterValue = useCallback(
@@ -283,41 +306,47 @@ export function useFilterPilotInfinite<TData, TFilters = Record<string, any>>(
         [name]: value,
       }));
 
-      // Handle debouncing
       if (config?.debounceMs) {
         if (debounceTimers.current[String(name)]) {
           clearTimeout(debounceTimers.current[String(name)]);
         }
-
         debounceTimers.current[String(name)] = setTimeout(() => {
           debouncedFilters.current = {
             ...debouncedFilters.current,
             [name]: value,
           };
+          setUrlSyncTrigger(prev => prev + 1); // Trigger URL sync
         }, config.debounceMs);
       } else {
         debouncedFilters.current = {
           ...debouncedFilters.current,
           [name]: value,
         };
+        setUrlSyncTrigger(prev => prev + 1); // Trigger URL sync
       }
     },
-    [filterConfigs]
+    [filterConfigs] // No need for urlSyncTrigger here
   );
 
-  const setFilters = useCallback((newFilters: Partial<TFilters>) => {
-    setFiltersState((prev) => ({ ...prev, ...newFilters }));
-    debouncedFilters.current = { ...debouncedFilters.current, ...newFilters };
-  }, []);
+  const setFilters = useCallback(
+    (newFilters: Partial<TFilters>) => {
+      setFiltersState((prev) => ({ ...prev, ...newFilters }));
+      debouncedFilters.current = { ...debouncedFilters.current, ...newFilters };
+      setUrlSyncTrigger(prev => prev + 1); // Trigger URL sync
+    },
+    [] // No need for urlSyncTrigger here
+  );
 
   const resetFilters = useCallback(() => {
     setFiltersState(defaultFilters);
     debouncedFilters.current = defaultFilters;
+    setUrlSyncTrigger(prev => prev + 1); // Trigger URL sync
   }, [defaultFilters]);
 
   const resetFilter = useCallback(
     (name: keyof TFilters) => {
       const defaultValue = (defaultFilters as any)[name];
+      // setFilterValue will automatically trigger URL sync
       setFilterValue(name, defaultValue);
     },
     [defaultFilters, setFilterValue]
@@ -326,22 +355,27 @@ export function useFilterPilotInfinite<TData, TFilters = Record<string, any>>(
   // Sort functions
   const setSort = useCallback((field: string, direction: 'asc' | 'desc' = 'asc') => {
     setSortState({ field, direction });
+    setUrlSyncTrigger(prev => prev + 1); // Trigger URL sync
   }, []);
 
   const toggleSort = useCallback((field: string) => {
     setSortState((prev) => {
       if (!prev || prev.field !== field) {
+        setUrlSyncTrigger(p => p + 1); // Trigger URL sync
         return { field, direction: 'asc' };
       }
       if (prev.direction === 'asc') {
+        setUrlSyncTrigger(p => p + 1); // Trigger URL sync
         return { field, direction: 'desc' };
       }
-      return undefined; // Remove sort
+      setUrlSyncTrigger(p => p + 1); // Trigger URL sync (when clearing sort)
+      return undefined; 
     });
   }, []);
 
   const clearSort = useCallback(() => {
     setSortState(undefined);
+    setUrlSyncTrigger(prev => prev + 1); // Trigger URL sync
   }, []);
 
   // Utilities
@@ -370,29 +404,26 @@ export function useFilterPilotInfinite<TData, TFilters = Record<string, any>>(
         const newPreset: FilterPreset = {
           id: Date.now().toString(),
           name,
-          filters: filters as Record<string, any>,
+          filters: filters as Record<string, any>, // current filters, not debounced
           createdAt: new Date(),
         };
         setPresets((prev) => [...prev, newPreset]);
-
-        // Save to localStorage
         try {
-          const key = `filterPilot_presets_${fetchConfig.queryKey || 'default'}`;
+          const key = `filterPilot_presets_${fetchConfig.queryKey || 'defaultInfinite'}`;
           localStorage.setItem(key, JSON.stringify([...presets, newPreset]));
         } catch (error) {
           console.error('Error saving preset:', error);
         }
       },
       loadPreset: (preset: FilterPreset) => {
+        // setFilters will automatically trigger URL sync
         setFilters(preset.filters as Partial<TFilters>);
       },
       deletePreset: (id: string) => {
-        setPresets((prev) => prev.filter((p) => p.id !== id));
-
-        // Update localStorage
+        const updatedPresets = presets.filter((p) => p.id !== id);
+        setPresets(updatedPresets);
         try {
-          const key = `filterPilot_presets_${fetchConfig.queryKey || 'default'}`;
-          const updatedPresets = presets.filter((p) => p.id !== id);
+          const key = `filterPilot_presets_${fetchConfig.queryKey || 'defaultInfinite'}`;
           localStorage.setItem(key, JSON.stringify(updatedPresets));
         } catch (error) {
           console.error('Error deleting preset:', error);
@@ -400,24 +431,25 @@ export function useFilterPilotInfinite<TData, TFilters = Record<string, any>>(
       },
       getPresets: () => presets,
     };
-  }, [enablePresets, filters, presets, setFilters, fetchConfig.queryKey]);
+  }, [enablePresets, filters, presets, setFilters, fetchConfig.queryKey]); // `setFilters` is a dependency
 
   // Load presets from localStorage on mount
   useEffect(() => {
     if (enablePresets) {
       try {
-        const key = `filterPilot_presets_${fetchConfig.queryKey || 'default'}`;
+        const key = `filterPilot_presets_${fetchConfig.queryKey || 'defaultInfinite'}`;
         const savedPresets = localStorage.getItem(key);
         if (savedPresets) {
           setPresets(JSON.parse(savedPresets));
         }
-      } catch (error) {
+      } catch (error)
+      {
         console.error('Error loading presets:', error);
       }
     }
   }, [enablePresets, fetchConfig.queryKey]);
 
-  // Flatten pages data
+  // Flatten data from pages
   const data = useMemo(() => {
     return query.data?.pages.flatMap((page) => page.data) || [];
   }, [query.data]);
@@ -428,20 +460,15 @@ export function useFilterPilotInfinite<TData, TFilters = Record<string, any>>(
   }, [query.data]);
 
   return {
-    // Filter state
     filters,
     setFilterValue,
     setFilters,
     resetFilters,
     resetFilter,
-
-    // Sort state
     sort,
     setSort,
     toggleSort,
     clearSort,
-
-    // Data & Query state
     data,
     isLoading: query.isLoading,
     isError: query.isError,
@@ -457,13 +484,9 @@ export function useFilterPilotInfinite<TData, TFilters = Record<string, any>>(
     refetch: query.refetch,
     totalRecords,
     pageParams: query.data?.pageParams || [],
-
-    // Utilities
     hasActiveFilters,
     getActiveFiltersCount,
     getQueryKey: () => queryKey,
-
-    // Presets
     presets: presetMethods,
   };
 }

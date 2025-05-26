@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { MantineReactTable, useMantineReactTable, type MRT_ColumnDef } from 'mantine-react-table';
-import { useFilterPilot } from 'react-filter-pilot';
+import { useDefaultUrlHandler, useFilterPilot } from 'react-filter-pilot';
 
 // Simple User type
 interface User {
@@ -12,7 +12,6 @@ interface User {
 
 // Minimal example focusing on pagination
 export function SimpleMantineTableExample() {
-  // react-filter-pilot handles all state management
   const {
     data,
     isLoading,
@@ -20,11 +19,12 @@ export function SimpleMantineTableExample() {
     setPage,
     setPageSize,
   } = useFilterPilot<User, {}>({
-    filterConfigs: [], // No filters in this simple example
+    filterConfigs: [],
     paginationConfig: {
       initialPage: 1,
       initialPageSize: 5,
       pageSizeOptions: [5, 10, 20],
+      syncWithUrl: true,
     },
     fetchConfig: {
       fetchFn: async ({ pagination }) => {

@@ -5,7 +5,7 @@ import {
   type MRT_ColumnDef,
   type MRT_ColumnFiltersState,
 } from 'mantine-react-table';
-import { useFilterPilot } from 'react-filter-pilot';
+import { useFilterPilot, useHashUrlHandler } from 'react-filter-pilot';
 import { Box, TextInput, Select, Group, Badge, ActionIcon, Tooltip } from '@mantine/core';
 import { IconRefresh, IconFilter } from '@tabler/icons-react';
 
@@ -86,6 +86,9 @@ function generateMockUsers(pageSize: number, page: number): User[] {
 }
 
 export function MantineTableWithFilterPilot() {
+  // Sử dụng URL handler mặc định
+  const urlHandler = useHashUrlHandler();
+
   // Use react-filter-pilot for state management
   const {
     filters,
@@ -101,6 +104,7 @@ export function MantineTableWithFilterPilot() {
     resetFilters,
     refetch,
   } = useFilterPilot<User, UserFilters>({
+    urlHandler, // Thêm URL handler để đồng bộ hóa với URL
     filterConfigs: [
       {
         name: 'globalSearch',
@@ -133,6 +137,7 @@ export function MantineTableWithFilterPilot() {
       initialPageSize: 10,
       pageSizeOptions: [5, 10, 20, 50],
       resetOnFilterChange: true,
+      syncWithUrl: true, // Đồng bộ hóa phân trang với URL
     },
     sortConfig: {
       initialSortField: 'firstName',
@@ -344,6 +349,9 @@ export function AdvancedMantineTableExample() {
   // You can also handle column filters from Mantine Table
   const [columnFilters, setColumnFilters] = React.useState<MRT_ColumnFiltersState>([]);
   
+  // Sử dụng URL handler mặc định
+  const urlHandler = useHashUrlHandler();
+  
   const {
     filters,
     setFilterValue,
@@ -356,6 +364,7 @@ export function AdvancedMantineTableExample() {
     sort,
     setSort,
   } = useFilterPilot<User, any>({
+    urlHandler, // Thêm URL handler để đồng bộ hóa với URL
     filterConfigs: [
       {
         name: 'filters',
@@ -372,6 +381,7 @@ export function AdvancedMantineTableExample() {
     ],
     paginationConfig: {
       external: false, // Let react-filter-pilot handle pagination
+      syncWithUrl: true, // Đồng bộ hóa phân trang với URL
     },
     fetchConfig: {
       fetchFn: async ({ filters, pagination, sort }) => {

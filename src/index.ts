@@ -8,6 +8,7 @@ export { useReactRouterDomUrlHandler } from './adapters/reactRouterDom';
 export { useNextJsUrlHandler } from './adapters/nextJs';
 export { useNextJsPagesUrlHandler } from './adapters/nextJsPages';
 export { useNextJsAppCustomUrlHandler } from './adapters/nextJsAppCustom';
+export { useDefaultUrlHandler } from './hooks/useUrlHandler';
 export { 
   createUrlHandler,
   useHashUrlHandler,

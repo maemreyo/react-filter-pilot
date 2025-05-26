@@ -224,6 +224,7 @@ export const ProductList: React.FC = () => {
       initialPageSize: 12,
       pageSizeOptions: [6, 12, 24, 48],
       resetOnFilterChange: true,
+      syncWithUrl: true
     },
     sortConfig: {
       initialSortField: 'name',
