@@ -1,6 +1,6 @@
 {
   "name": "@matthew.ngo/react-filter-pilot",
-  "version": "0.1.8",
+  "version": "0.1.9",
   "description": "Powerful filtering, pagination, and sorting for React with TanStack Query integration",
   "author": "Htur Wehttam <matthew.ngo1114@gmail.com>",
   "license": "MIT",
