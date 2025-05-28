@@ -75,6 +75,31 @@ export function useFilterPilot<TData, TFilters = Record<string, any>>(
   const debounceTimers = useRef<Record<string, NodeJS.Timeout>>({});
   const isInitialized = useRef(false);
 
+  // FIXED: Memoize all param keys that this hook manages to avoid conflicts
+  const managedParamKeys = useMemo(() => {
+    const keys = new Set<string>();
+    
+    // Add filter param keys
+    filterConfigs.forEach((config) => {
+      const urlKey = config.urlKey || config.name;
+      keys.add(urlKey);
+    });
+    
+    // Add pagination param keys
+    if (paginationConfig.syncWithUrl !== false) {
+      keys.add('page');
+      keys.add('pageSize');
+    }
+    
+    // Add sort param keys
+    if (sortConfig.syncWithUrl !== false) {
+      keys.add('sortBy');
+      keys.add('sortOrder');
+    }
+    
+    return keys;
+  }, [filterConfigs, paginationConfig.syncWithUrl, sortConfig.syncWithUrl]);
+
   // Initialize from URL on mount
   useEffect(() => {
     if (isInitialized.current) return;
@@ -129,7 +154,7 @@ export function useFilterPilot<TData, TFilters = Record<string, any>>(
     initializeFromUrl();
   }, []); // Only run on mount
 
-  // Stable URL sync function
+  // FIXED: Enhanced URL sync function that preserves external params
   const syncToUrl = useCallback(() => {
     if (!isInitialized.current) return;
 
@@ -137,10 +162,9 @@ export function useFilterPilot<TData, TFilters = Record<string, any>>(
     // @ts-ignore
     const filterParams = buildUrlParams(debouncedFilters, filterConfigs);
 
-    // Clear existing filter params
-    filterConfigs.forEach((config) => {
-      const urlKey = config.urlKey || config.name;
-      params.delete(urlKey);
+    // FIXED: Only clear params that this hook manages, preserve others
+    managedParamKeys.forEach((key) => {
+      params.delete(key);
     });
 
     // Set new filter params
@@ -167,7 +191,7 @@ export function useFilterPilot<TData, TFilters = Record<string, any>>(
     }
 
     urlHandler.setParams(params);
-  }, [filterConfigs, paginationConfig.syncWithUrl, sortConfig.syncWithUrl, urlHandler, pagination, sort, debouncedFilters]);
+  }, [filterConfigs, paginationConfig.syncWithUrl, sortConfig.syncWithUrl, urlHandler, pagination, sort, debouncedFilters, managedParamKeys]);
 
   // Debounced URL sync for filters only
   const debouncedSyncToUrl = useRef<NodeJS.Timeout>();
@@ -396,7 +420,7 @@ export function useFilterPilot<TData, TFilters = Record<string, any>>(
     [defaultFilters, setFilterValue]
   );
 
-  // Create URL sync function that works with new values directly
+  // FIXED: Enhanced URL sync function that preserves external params
   const syncUrlWithValues = useCallback((newPagination?: Partial<PaginationState>, newSort?: SortState | undefined) => {
     if (!isInitialized.current) return;
 
@@ -404,10 +428,9 @@ export function useFilterPilot<TData, TFilters = Record<string, any>>(
     // @ts-ignore
     const filterParams = buildUrlParams(debouncedFilters, filterConfigs);
 
-    // Clear existing filter params
-    filterConfigs.forEach((config) => {
-      const urlKey = config.urlKey || config.name;
-      params.delete(urlKey);
+    // FIXED: Only clear params that this hook manages, preserve others like 'gid'
+    managedParamKeys.forEach((key) => {
+      params.delete(key);
     });
 
     // Set new filter params
@@ -438,7 +461,7 @@ export function useFilterPilot<TData, TFilters = Record<string, any>>(
     }
 
     urlHandler.setParams(params);
-  }, [filterConfigs, paginationConfig.syncWithUrl, sortConfig.syncWithUrl, urlHandler, pagination, sort, debouncedFilters]);
+  }, [filterConfigs, paginationConfig.syncWithUrl, sortConfig.syncWithUrl, urlHandler, pagination, sort, debouncedFilters, managedParamKeys]);
 
   // FIXED: Pagination functions - pass new values directly to URL sync
   const setPage = useCallback((page: number) => {
