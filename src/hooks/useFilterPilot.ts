@@ -174,6 +174,7 @@ export function useFilterPilot<TData, TFilters = Record<string, any>>(
     });
 
     // Set filter params
+    // @ts-ignore
     const filterParams = buildUrlParams(currentFilters, filterConfigs);
     filterParams.forEach((value, key) => {
       const config = filterConfigs.find((c) => c.urlKey === key || c.name === key);
