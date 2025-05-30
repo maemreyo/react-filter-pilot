@@ -5,7 +5,7 @@ import { SimpleMantineTableExample } from './examples/mantine-simple-example';
 import { MantineTableWithFilterPilot, AdvancedMantineTableExample } from './examples/mantine-table-example';
 
 function App() {
-  const [activeExample, setActiveExample] = useState<string>('mantine-simple');
+  const [activeExample, setActiveExample] = useState<string>('product-list');
 
   return (
     <div className='app-container'>
