@@ -369,28 +369,68 @@ export function useFilterPilot<TData, TFilters = Record<string, any>>(
   // Filter functions with immediate URL sync
   const setFilterValue = useCallback(
     (name: keyof TFilters, value: any) => {
+      // Update UI state immediately
       const newFilters = { ...filters, [name]: value } as TFilters;
       setFiltersState(newFilters);
 
       const config = filterConfigs.find((c) => c.name === String(name));
 
-      if (config?.debounceMs) {
+      if (config?.debounceMs && config.syncWithUrl !== false) {
+        // Với debounced fields, delay cả URL sync và API call
         if (debounceTimers.current[String(name)]) {
           clearTimeout(debounceTimers.current[String(name)]);
         }
 
         debounceTimers.current[String(name)] = setTimeout(() => {
-          setDebouncedFilters((prev) => ({ ...prev, [name]: value }));
-          syncUrlWithValues({ ...filters, [name]: value } as TFilters);
+          // Update debounced filters cho API call
+          setDebouncedFilters((prev) => ({
+            ...prev,
+            [name]: value,
+          }));
 
-          // Reset pagination logic...
+          // Sync URL sau khi debounce
+          syncUrlWithValues(newFilters);
+
+          // Reset pagination if configured
+          if (paginationConfig.resetOnFilterChange !== false) {
+            if (
+              !paginationConfig.resetPageOnFilterChange ||
+              paginationConfig.resetPageOnFilterChange(String(name))
+            ) {
+              setPaginationState((prev) => ({ ...prev, page: 1 }));
+            }
+          }
         }, config.debounceMs);
       } else {
-        setDebouncedFilters((prev) => ({ ...prev, [name]: value }));
-        syncUrlWithValues(newFilters);
+        // Không có debounce hoặc không sync URL
+        setDebouncedFilters((prev) => ({
+          ...prev,
+          [name]: value,
+        }));
+
+        // Chỉ sync URL ngay nếu syncWithUrl !== false
+        if (config?.syncWithUrl !== false) {
+          syncUrlWithValues(newFilters);
+        }
+
+        // Reset pagination if configured
+        if (paginationConfig.resetOnFilterChange !== false) {
+          if (
+            !paginationConfig.resetPageOnFilterChange ||
+            paginationConfig.resetPageOnFilterChange(String(name))
+          ) {
+            setPaginationState((prev) => ({ ...prev, page: 1 }));
+          }
+        }
       }
     },
-    [filters, syncUrlWithValues, filterConfigs]
+    [
+      filters,
+      filterConfigs,
+      syncUrlWithValues,
+      paginationConfig.resetOnFilterChange,
+      paginationConfig.resetPageOnFilterChange,
+    ]
   );
 
   const setFilters = useCallback(
