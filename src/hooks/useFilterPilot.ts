@@ -366,72 +366,31 @@ export function useFilterPilot<TData, TFilters = Record<string, any>>(
     }
   }, [query.isError, query.error, fetchConfig.onError]);
 
-  // Filter functions with immediate URL sync
   const setFilterValue = useCallback(
-    (name: keyof TFilters, value: any) => {
-      // Update UI state immediately
-      const newFilters = { ...filters, [name]: value } as TFilters;
-      setFiltersState(newFilters);
+  (name: keyof TFilters, value: any) => {
+    const config = filterConfigs.find((c) => c.name === String(name));
+    
+    const newFilters = { ...filters, [name]: value } as TFilters;
+    setFiltersState(newFilters);
 
-      const config = filterConfigs.find((c) => c.name === String(name));
-
-      if (config?.debounceMs && config.syncWithUrl !== false) {
-        // Với debounced fields, delay cả URL sync và API call
-        if (debounceTimers.current[String(name)]) {
-          clearTimeout(debounceTimers.current[String(name)]);
+    if (config?.syncWithUrl !== false) {
+      if (config?.debounceMs) {
+        if (debounceTimers.current[`url_${String(name)}`]) {
+          clearTimeout(debounceTimers.current[`url_${String(name)}`]);
         }
-
-        debounceTimers.current[String(name)] = setTimeout(() => {
-          // Update debounced filters cho API call
-          setDebouncedFilters((prev) => ({
-            ...prev,
-            [name]: value,
-          }));
-
-          // Sync URL sau khi debounce
-          syncUrlWithValues(newFilters);
-
-          // Reset pagination if configured
-          if (paginationConfig.resetOnFilterChange !== false) {
-            if (
-              !paginationConfig.resetPageOnFilterChange ||
-              paginationConfig.resetPageOnFilterChange(String(name))
-            ) {
-              setPaginationState((prev) => ({ ...prev, page: 1 }));
-            }
-          }
+        
+        debounceTimers.current[`url_${String(name)}`] = setTimeout(() => {
+          syncUrlWithValues({ ...filters, [name]: value } as TFilters);
         }, config.debounceMs);
       } else {
-        // Không có debounce hoặc không sync URL
-        setDebouncedFilters((prev) => ({
-          ...prev,
-          [name]: value,
-        }));
-
-        // Chỉ sync URL ngay nếu syncWithUrl !== false
-        if (config?.syncWithUrl !== false) {
-          syncUrlWithValues(newFilters);
-        }
-
-        // Reset pagination if configured
-        if (paginationConfig.resetOnFilterChange !== false) {
-          if (
-            !paginationConfig.resetPageOnFilterChange ||
-            paginationConfig.resetPageOnFilterChange(String(name))
-          ) {
-            setPaginationState((prev) => ({ ...prev, page: 1 }));
-          }
-        }
+        syncUrlWithValues(newFilters);
       }
-    },
-    [
-      filters,
-      filterConfigs,
-      syncUrlWithValues,
-      paginationConfig.resetOnFilterChange,
-      paginationConfig.resetPageOnFilterChange,
-    ]
-  );
+    }
+
+    triggerDebouncedApiCall(String(name), value);
+  },
+  [filters, syncUrlWithValues, triggerDebouncedApiCall, filterConfigs]
+);
 
   const setFilters = useCallback(
     (newFilters: Partial<TFilters>) => {
