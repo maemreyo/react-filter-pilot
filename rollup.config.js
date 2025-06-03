@@ -59,9 +59,9 @@ export default defineConfig([
         format: {
           comments: false,
         },
-        compress: {
-          drop_console: process.env.NODE_ENV === 'production',
-        },
+        // compress: {
+        //   drop_console: process.env.NODE_ENV === 'production',
+        // },
       }),
     ],
     external: [
