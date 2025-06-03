@@ -370,19 +370,32 @@ export function useFilterPilot<TData, TFilters = Record<string, any>>(
     (name: keyof TFilters, value: any) => {
       const config = filterConfigs.find((c) => c.name === String(name));
 
+      console.log('🎯 setFilterValue called:', {
+        name: String(name),
+        value,
+        debounceMs: config?.debounceMs,
+        syncWithUrl: config?.syncWithUrl,
+        timestamp: new Date().toISOString(),
+      });
+
       const newFilters = { ...filters, [name]: value } as TFilters;
       setFiltersState(newFilters);
 
       if (config?.syncWithUrl !== false) {
         if (config?.debounceMs) {
+          console.log('🕐 Setting URL debounce timer:', config.debounceMs + 'ms');
+
           if (debounceTimers.current[`url_${String(name)}`]) {
             clearTimeout(debounceTimers.current[`url_${String(name)}`]);
+            console.log('🗑️ Cleared previous URL timer');
           }
 
           debounceTimers.current[`url_${String(name)}`] = setTimeout(() => {
+            console.log('🚀 URL debounce triggered for:', String(name));
             syncUrlWithValues(newFilters);
           }, config.debounceMs);
         } else {
+          console.log('⚡ Immediate URL sync (no debounce)');
           syncUrlWithValues(newFilters);
         }
       }
