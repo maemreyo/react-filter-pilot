@@ -56,7 +56,7 @@ export const ProductList: React.FC = () => {
       {
         name: 'search',
         defaultValue: '',
-        debounceMs: 1500,
+        debounceMs: 1400,
         urlKey: 'q',
         syncWithUrl: true
       },

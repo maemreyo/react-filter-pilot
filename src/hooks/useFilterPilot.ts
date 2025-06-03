@@ -367,30 +367,30 @@ export function useFilterPilot<TData, TFilters = Record<string, any>>(
   }, [query.isError, query.error, fetchConfig.onError]);
 
   const setFilterValue = useCallback(
-  (name: keyof TFilters, value: any) => {
-    const config = filterConfigs.find((c) => c.name === String(name));
-    
-    const newFilters = { ...filters, [name]: value } as TFilters;
-    setFiltersState(newFilters);
+    (name: keyof TFilters, value: any) => {
+      const config = filterConfigs.find((c) => c.name === String(name));
 
-    if (config?.syncWithUrl !== false) {
-      if (config?.debounceMs) {
-        if (debounceTimers.current[String(name)]) {
-          clearTimeout(debounceTimers.current[String(name)]);
+      const newFilters = { ...filters, [name]: value } as TFilters;
+      setFiltersState(newFilters);
+
+      if (config?.syncWithUrl !== false) {
+        if (config?.debounceMs) {
+          if (debounceTimers.current[`url_${String(name)}`]) {
+            clearTimeout(debounceTimers.current[`url_${String(name)}`]);
+          }
+
+          debounceTimers.current[`url_${String(name)}`] = setTimeout(() => {
+            syncUrlWithValues(newFilters);
+          }, config.debounceMs);
+        } else {
+          syncUrlWithValues(newFilters);
         }
-        
-        debounceTimers.current[String(name)] = setTimeout(() => {
-          syncUrlWithValues({ ...filters, [name]: value } as TFilters);
-        }, config.debounceMs);
-      } else {
-        syncUrlWithValues(newFilters);
       }
-    }
 
-    triggerDebouncedApiCall(String(name), value);
-  },
-  [filters, syncUrlWithValues, triggerDebouncedApiCall, filterConfigs]
-);
+      triggerDebouncedApiCall(String(name), value);
+    },
+    [syncUrlWithValues, triggerDebouncedApiCall, filterConfigs]
+  );
 
   const setFilters = useCallback(
     (newFilters: Partial<TFilters>) => {
