@@ -58,6 +58,7 @@ export const ProductList: React.FC = () => {
         defaultValue: '',
         debounceMs: 300,
         urlKey: 'q',
+        syncWithUrl: false
       },
       {
         name: 'category',

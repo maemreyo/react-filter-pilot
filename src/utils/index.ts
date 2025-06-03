@@ -1,5 +1,5 @@
 export { transformFilterValue } from './transformUtils';
-export { parseUrlParams, buildUrlParams } from './urlUtils';
+export { parseUrlParams, buildUrlParams, buildSyncableUrlParams } from './urlUtils';
 export { 
   isFilterActive, 
   getDefaultFilters, 

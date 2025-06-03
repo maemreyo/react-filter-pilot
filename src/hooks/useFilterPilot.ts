@@ -14,7 +14,7 @@ import {
   isFilterActive,
   mergeFilters,
   parseUrlParams,
-  buildUrlParams,
+  buildSyncableUrlParams,
   transformFilterValue,
 } from '../utils';
 import { useDefaultUrlHandler } from './useUrlHandler';
@@ -44,22 +44,26 @@ export function useFilterPilot<TData, TFilters = Record<string, any>>(
     [filterConfigs]
   );
 
-  const defaultPagination: PaginationState = useMemo(() => ({
-    page: paginationConfig.initialPage || 1,
-    pageSize: paginationConfig.initialPageSize || 10,
-    totalPages: 0,
-    totalRecords: 0,
-    hasNextPage: false,
-    hasPreviousPage: false,
-  }), [paginationConfig.initialPage, paginationConfig.initialPageSize]);
+  const defaultPagination: PaginationState = useMemo(
+    () => ({
+      page: paginationConfig.initialPage || 1,
+      pageSize: paginationConfig.initialPageSize || 10,
+      totalPages: 0,
+      totalRecords: 0,
+      hasNextPage: false,
+      hasPreviousPage: false,
+    }),
+    [paginationConfig.initialPage, paginationConfig.initialPageSize]
+  );
 
-  const defaultSort: SortState | undefined = useMemo(() => 
-    sortConfig.initialSortField
-      ? {
-          field: sortConfig.initialSortField,
-          direction: sortConfig.initialSortDirection || 'asc',
-        }
-      : undefined,
+  const defaultSort: SortState | undefined = useMemo(
+    () =>
+      sortConfig.initialSortField
+        ? {
+            field: sortConfig.initialSortField,
+            direction: sortConfig.initialSortDirection || 'asc',
+          }
+        : undefined,
     [sortConfig.initialSortField, sortConfig.initialSortDirection]
   );
 
@@ -68,35 +72,37 @@ export function useFilterPilot<TData, TFilters = Record<string, any>>(
   const [pagination, setPaginationState] = useState<PaginationState>(defaultPagination);
   const [sort, setSortState] = useState<SortState | undefined>(defaultSort);
   const [presets, setPresets] = useState<FilterPreset[]>([]);
-  
+
   const [debouncedFilters, setDebouncedFilters] = useState<TFilters>(defaultFilters);
 
   // Refs for debouncing
   const debounceTimers = useRef<Record<string, NodeJS.Timeout>>({});
   const isInitialized = useRef(false);
 
-  // Memoize all param keys that this hook manages to avoid conflicts
+  // Memoize all param keys that this hook manages - CHỈ sync filters
   const managedParamKeys = useMemo(() => {
     const keys = new Set<string>();
-    
-    // Add filter param keys
+
+    // Add filter param keys - CHỈ những filter sync với URL
     filterConfigs.forEach((config) => {
-      const urlKey = config.urlKey || config.name;
-      keys.add(urlKey);
+      if (config.syncWithUrl !== false) {
+        const urlKey = config.urlKey || config.name;
+        keys.add(urlKey);
+      }
     });
-    
+
     // Add pagination param keys
     if (paginationConfig.syncWithUrl !== false) {
       keys.add('page');
       keys.add('pageSize');
     }
-    
+
     // Add sort param keys
     if (sortConfig.syncWithUrl !== false) {
       keys.add('sortBy');
       keys.add('sortOrder');
     }
-    
+
     return keys;
   }, [filterConfigs, paginationConfig.syncWithUrl, sortConfig.syncWithUrl]);
 
@@ -154,60 +160,86 @@ export function useFilterPilot<TData, TFilters = Record<string, any>>(
     initializeFromUrl();
   }, []); // Only run on mount
 
-  const syncUrlWithValues = useCallback((
-    newFilters?: TFilters,
-    newPagination?: Partial<PaginationState>, 
-    newSort?: SortState | undefined
-  ) => {
-    if (!isInitialized.current) return;
+  const syncUrlWithValues = useCallback(
+    (
+      newFilters?: TFilters,
+      newPagination?: Partial<PaginationState>,
+      newSort?: SortState | undefined
+    ) => {
+      if (!isInitialized.current) return;
 
-    const params = urlHandler.getParams();
-    
-    // Use provided values or current state
-    const currentFilters = newFilters !== undefined ? newFilters : debouncedFilters;
-    const currentPagination = newPagination ? { ...pagination, ...newPagination } : pagination;
-    const currentSort = newSort !== undefined ? newSort : sort;
+      const params = urlHandler.getParams();
 
-    // Clear managed params
-    managedParamKeys.forEach((key) => {
-      params.delete(key);
-    });
+      // Use provided values or current state
+      const currentFilters = newFilters !== undefined ? newFilters : debouncedFilters;
+      const currentPagination = newPagination ? { ...pagination, ...newPagination } : pagination;
+      const currentSort = newSort !== undefined ? newSort : sort;
 
-    // Set filter params
-    // @ts-ignore
-    const filterParams = buildUrlParams(currentFilters, filterConfigs);
-    filterParams.forEach((value, key) => {
-      const config = filterConfigs.find((c) => c.urlKey === key || c.name === key);
-      if (config?.syncWithUrl !== false) {
+      // Clear managed params - CHỈ những params đang được manage
+      managedParamKeys.forEach((key) => {
+        params.delete(key);
+      });
+
+      // @ts-ignore
+      const filterParams = buildSyncableUrlParams(currentFilters, filterConfigs);
+      filterParams.forEach((value, key) => {
         params.set(key, value);
+      });
+
+      // Set pagination params
+      if (paginationConfig.syncWithUrl !== false) {
+        params.set('page', String(currentPagination.page));
+        params.set('pageSize', String(currentPagination.pageSize));
       }
-    });
 
-    // Set pagination params
-    if (paginationConfig.syncWithUrl !== false) {
-      params.set('page', String(currentPagination.page));
-      params.set('pageSize', String(currentPagination.pageSize));
-    }
+      // Set sort params
+      if (sortConfig.syncWithUrl !== false && currentSort) {
+        params.set('sortBy', currentSort.field);
+        params.set('sortOrder', currentSort.direction);
+      }
 
-    // Set sort params
-    if (sortConfig.syncWithUrl !== false && currentSort) {
-      params.set('sortBy', currentSort.field);
-      params.set('sortOrder', currentSort.direction);
-    }
-
-    urlHandler.setParams(params);
-  }, [filterConfigs, paginationConfig.syncWithUrl, sortConfig.syncWithUrl, urlHandler, pagination, sort, debouncedFilters, managedParamKeys]);
+      urlHandler.setParams(params);
+    },
+    [
+      filterConfigs,
+      paginationConfig.syncWithUrl,
+      sortConfig.syncWithUrl,
+      urlHandler,
+      pagination,
+      sort,
+      debouncedFilters,
+      managedParamKeys,
+    ]
+  );
 
   // Separate debounced sync for API calls only (not URL)
-  const triggerDebouncedApiCall = useCallback((filterName: string, value: any) => {
-    const config = filterConfigs.find((c) => c.name === filterName);
-    
-    if (config?.debounceMs) {
-      if (debounceTimers.current[filterName]) {
-        clearTimeout(debounceTimers.current[filterName]);
-      }
+  const triggerDebouncedApiCall = useCallback(
+    (filterName: string, value: any) => {
+      const config = filterConfigs.find((c) => c.name === filterName);
 
-      debounceTimers.current[filterName] = setTimeout(() => {
+      if (config?.debounceMs) {
+        if (debounceTimers.current[filterName]) {
+          clearTimeout(debounceTimers.current[filterName]);
+        }
+
+        debounceTimers.current[filterName] = setTimeout(() => {
+          setDebouncedFilters((prev) => ({
+            ...prev,
+            [filterName]: value,
+          }));
+
+          // Reset pagination if configured
+          if (paginationConfig.resetOnFilterChange !== false) {
+            if (
+              !paginationConfig.resetPageOnFilterChange ||
+              paginationConfig.resetPageOnFilterChange(filterName)
+            ) {
+              setPaginationState((prev) => ({ ...prev, page: 1 }));
+            }
+          }
+        }, config.debounceMs);
+      } else {
+        // No debouncing, update immediately
         setDebouncedFilters((prev) => ({
           ...prev,
           [filterName]: value,
@@ -222,30 +254,15 @@ export function useFilterPilot<TData, TFilters = Record<string, any>>(
             setPaginationState((prev) => ({ ...prev, page: 1 }));
           }
         }
-      }, config.debounceMs);
-    } else {
-      // No debouncing, update immediately
-      setDebouncedFilters((prev) => ({
-        ...prev,
-        [filterName]: value,
-      }));
-
-      // Reset pagination if configured
-      if (paginationConfig.resetOnFilterChange !== false) {
-        if (
-          !paginationConfig.resetPageOnFilterChange ||
-          paginationConfig.resetPageOnFilterChange(filterName)
-        ) {
-          setPaginationState((prev) => ({ ...prev, page: 1 }));
-        }
       }
-    }
-  }, [filterConfigs, paginationConfig.resetOnFilterChange, paginationConfig.resetPageOnFilterChange]);
+    },
+    [filterConfigs, paginationConfig.resetOnFilterChange, paginationConfig.resetPageOnFilterChange]
+  );
 
   // Query key with proper dependencies
   const queryKey = useMemo(() => {
     const baseKey = normalizeQueryKey(fetchConfig.queryKey);
-    
+
     // Create stable objects for comparison
     const stableFilters = JSON.stringify(debouncedFilters);
     const stablePagination = JSON.stringify({
@@ -253,23 +270,17 @@ export function useFilterPilot<TData, TFilters = Record<string, any>>(
       pageSize: pagination.pageSize,
     });
     const stableSort = JSON.stringify(sort);
-    
+
     return [
       ...baseKey,
       'filters',
       stableFilters,
-      'pagination', 
+      'pagination',
       stablePagination,
       'sort',
       stableSort,
     ];
-  }, [
-    fetchConfig.queryKey,
-    debouncedFilters,
-    pagination.page,
-    pagination.pageSize,
-    sort,
-  ]);
+  }, [fetchConfig.queryKey, debouncedFilters, pagination.page, pagination.pageSize, sort]);
 
   // Fetch control
   const { shouldFetch, fetchReason, controlledFetch } = useFetchControl(
@@ -300,7 +311,15 @@ export function useFilterPilot<TData, TFilters = Record<string, any>>(
 
     // Wrap with fetch control
     return controlledFetch(() => fetchConfig.fetchFn(transformedParams));
-  }, [debouncedFilters, pagination.page, pagination.pageSize, sort, filterConfigs, fetchConfig.fetchFn, controlledFetch]);
+  }, [
+    debouncedFilters,
+    pagination.page,
+    pagination.pageSize,
+    sort,
+    filterConfigs,
+    fetchConfig.fetchFn,
+    controlledFetch,
+  ]);
 
   // Query
   const query = useQuery<FetchResult<TData>, Error, FetchResult<TData>, unknown[]>({
@@ -355,7 +374,7 @@ export function useFilterPilot<TData, TFilters = Record<string, any>>(
         ...filters,
         [name]: value,
       } as TFilters;
-      
+
       setFiltersState(newFilters);
 
       // Sync URL immediately with new filter value
@@ -370,7 +389,7 @@ export function useFilterPilot<TData, TFilters = Record<string, any>>(
   const setFilters = useCallback(
     (newFilters: Partial<TFilters>) => {
       const updatedFilters = { ...filters, ...newFilters } as TFilters;
-      
+
       setFiltersState(updatedFilters);
 
       // Sync URL immediately with new filters
@@ -394,7 +413,12 @@ export function useFilterPilot<TData, TFilters = Record<string, any>>(
         }
       }
     },
-    [filters, syncUrlWithValues, paginationConfig.resetOnFilterChange, paginationConfig.resetPageOnFilterChange]
+    [
+      filters,
+      syncUrlWithValues,
+      paginationConfig.resetOnFilterChange,
+      paginationConfig.resetPageOnFilterChange,
+    ]
   );
 
   const resetFilters = useCallback(() => {
@@ -403,7 +427,7 @@ export function useFilterPilot<TData, TFilters = Record<string, any>>(
 
     // Sync URL immediately with reset filters
     syncUrlWithValues(defaultFilters);
-    
+
     setPaginationState((prev) => ({ ...prev, page: 1 }));
   }, [defaultFilters, syncUrlWithValues]);
 
@@ -416,16 +440,22 @@ export function useFilterPilot<TData, TFilters = Record<string, any>>(
   );
 
   // Pagination functions - use unified sync function
-  const setPage = useCallback((page: number) => {
-    setPaginationState((prev) => ({ ...prev, page }));
-    syncUrlWithValues(undefined, { page });
-  }, [syncUrlWithValues]);
+  const setPage = useCallback(
+    (page: number) => {
+      setPaginationState((prev) => ({ ...prev, page }));
+      syncUrlWithValues(undefined, { page });
+    },
+    [syncUrlWithValues]
+  );
 
-  const setPageSize = useCallback((pageSize: number) => {
-    const newPagination = { pageSize, page: 1 };
-    setPaginationState((prev) => ({ ...prev, ...newPagination }));
-    syncUrlWithValues(undefined, newPagination);
-  }, [syncUrlWithValues]);
+  const setPageSize = useCallback(
+    (pageSize: number) => {
+      const newPagination = { pageSize, page: 1 };
+      setPaginationState((prev) => ({ ...prev, ...newPagination }));
+      syncUrlWithValues(undefined, newPagination);
+    },
+    [syncUrlWithValues]
+  );
 
   const nextPage = useCallback(() => {
     setPaginationState((prev) => {
@@ -450,27 +480,33 @@ export function useFilterPilot<TData, TFilters = Record<string, any>>(
   }, [syncUrlWithValues]);
 
   // Sort functions - use unified sync function
-  const setSort = useCallback((field: string, direction: 'asc' | 'desc' = 'asc') => {
-    const newSort = { field, direction };
-    setSortState(newSort);
-    syncUrlWithValues(undefined, undefined, newSort);
-  }, [syncUrlWithValues]);
+  const setSort = useCallback(
+    (field: string, direction: 'asc' | 'desc' = 'asc') => {
+      const newSort = { field, direction };
+      setSortState(newSort);
+      syncUrlWithValues(undefined, undefined, newSort);
+    },
+    [syncUrlWithValues]
+  );
 
-  const toggleSort = useCallback((field: string) => {
-    setSortState((prev) => {
-      let newState: SortState | undefined;
-      if (!prev || prev.field !== field) {
-        newState = { field, direction: 'asc' };
-      } else if (prev.direction === 'asc') {
-        newState = { field, direction: 'desc' };
-      } else {
-        newState = undefined;
-      }
-      
-      syncUrlWithValues(undefined, undefined, newState);
-      return newState;
-    });
-  }, [syncUrlWithValues]);
+  const toggleSort = useCallback(
+    (field: string) => {
+      setSortState((prev) => {
+        let newState: SortState | undefined;
+        if (!prev || prev.field !== field) {
+          newState = { field, direction: 'asc' };
+        } else if (prev.direction === 'asc') {
+          newState = { field, direction: 'desc' };
+        } else {
+          newState = undefined;
+        }
+
+        syncUrlWithValues(undefined, undefined, newState);
+        return newState;
+      });
+    },
+    [syncUrlWithValues]
+  );
 
   const clearSort = useCallback(() => {
     setSortState(undefined);

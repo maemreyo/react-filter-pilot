@@ -1,12 +1,6 @@
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import {
-  UseFilterPilotOptions,
-  FetchParams,
-  FetchResult,
-  SortState,
-  FilterPreset,
-} from '../types';
+import { UseFilterPilotOptions, FetchParams, FetchResult, SortState, FilterPreset } from '../types';
 import {
   getDefaultFilters,
   isFilterActive,
@@ -176,6 +170,7 @@ export function useFilterPilotInfinite<TData, TFilters = Record<string, any>>(
   }, []); // Only run on mount
 
   // Sync to URL when state changes
+  // Sync to URL when state changes
   useEffect(() => {
     // Skip on initial mount if urlSyncTrigger is still 0
     if (urlSyncTrigger === 0) {
@@ -188,15 +183,20 @@ export function useFilterPilotInfinite<TData, TFilters = Record<string, any>>(
     // @ts-ignore
     const filterParams = buildUrlParams(debouncedFilters.current, filterConfigs);
 
-    // Clear existing filter params
+    // Clear existing filter params - CHỈ những filter sync với URL
     filterConfigs.forEach((config) => {
-      const urlKey = config.urlKey || config.name;
-      params.delete(urlKey);
+      if (config.syncWithUrl !== false) {
+        const urlKey = config.urlKey || config.name;
+        params.delete(urlKey);
+      }
     });
 
-    // Set new filter params
+    // Set new filter params - CHỈ những filter sync với URL
     filterParams.forEach((value, key) => {
-      params.set(key, value);
+      const config = filterConfigs.find((c) => c.urlKey === key || c.name === key);
+      if (config?.syncWithUrl !== false) {
+        params.set(key, value);
+      }
     });
 
     // Add sort params
@@ -210,7 +210,7 @@ export function useFilterPilotInfinite<TData, TFilters = Record<string, any>>(
     }
 
     urlHandler.setParams(params);
-  }, [urlSyncTrigger, sort, filterConfigs, sortConfig.syncWithUrl, urlHandler]); // debouncedFilters.current is no longer a direct dependency
+  }, [urlSyncTrigger, sort, filterConfigs, sortConfig.syncWithUrl, urlHandler]);
 
   // Query key
   const queryKey = useMemo(
@@ -232,8 +232,9 @@ export function useFilterPilotInfinite<TData, TFilters = Record<string, any>>(
     async ({ pageParam }: { pageParam?: unknown }) => {
       const params: FetchParams<TFilters> & { cursor?: string | number | null } = {
         filters: debouncedFilters.current,
-        pagination: { // Pagination is not really used for URL sync in infinite, but needed for API
-          page: 1, 
+        pagination: {
+          // Pagination is not really used for URL sync in infinite, but needed for API
+          page: 1,
           pageSize: 20, // Default page size or from config if available
         },
         sort,
@@ -315,14 +316,14 @@ export function useFilterPilotInfinite<TData, TFilters = Record<string, any>>(
             ...debouncedFilters.current,
             [name]: value,
           };
-          setUrlSyncTrigger(prev => prev + 1); // Trigger URL sync
+          setUrlSyncTrigger((prev) => prev + 1); // Trigger URL sync
         }, config.debounceMs);
       } else {
         debouncedFilters.current = {
           ...debouncedFilters.current,
           [name]: value,
         };
-        setUrlSyncTrigger(prev => prev + 1); // Trigger URL sync
+        setUrlSyncTrigger((prev) => prev + 1); // Trigger URL sync
       }
     },
     [filterConfigs] // No need for urlSyncTrigger here
@@ -332,7 +333,7 @@ export function useFilterPilotInfinite<TData, TFilters = Record<string, any>>(
     (newFilters: Partial<TFilters>) => {
       setFiltersState((prev) => ({ ...prev, ...newFilters }));
       debouncedFilters.current = { ...debouncedFilters.current, ...newFilters };
-      setUrlSyncTrigger(prev => prev + 1); // Trigger URL sync
+      setUrlSyncTrigger((prev) => prev + 1); // Trigger URL sync
     },
     [] // No need for urlSyncTrigger here
   );
@@ -340,7 +341,7 @@ export function useFilterPilotInfinite<TData, TFilters = Record<string, any>>(
   const resetFilters = useCallback(() => {
     setFiltersState(defaultFilters);
     debouncedFilters.current = defaultFilters;
-    setUrlSyncTrigger(prev => prev + 1); // Trigger URL sync
+    setUrlSyncTrigger((prev) => prev + 1); // Trigger URL sync
   }, [defaultFilters]);
 
   const resetFilter = useCallback(
@@ -355,27 +356,27 @@ export function useFilterPilotInfinite<TData, TFilters = Record<string, any>>(
   // Sort functions
   const setSort = useCallback((field: string, direction: 'asc' | 'desc' = 'asc') => {
     setSortState({ field, direction });
-    setUrlSyncTrigger(prev => prev + 1); // Trigger URL sync
+    setUrlSyncTrigger((prev) => prev + 1); // Trigger URL sync
   }, []);
 
   const toggleSort = useCallback((field: string) => {
     setSortState((prev) => {
       if (!prev || prev.field !== field) {
-        setUrlSyncTrigger(p => p + 1); // Trigger URL sync
+        setUrlSyncTrigger((p) => p + 1); // Trigger URL sync
         return { field, direction: 'asc' };
       }
       if (prev.direction === 'asc') {
-        setUrlSyncTrigger(p => p + 1); // Trigger URL sync
+        setUrlSyncTrigger((p) => p + 1); // Trigger URL sync
         return { field, direction: 'desc' };
       }
-      setUrlSyncTrigger(p => p + 1); // Trigger URL sync (when clearing sort)
-      return undefined; 
+      setUrlSyncTrigger((p) => p + 1); // Trigger URL sync (when clearing sort)
+      return undefined;
     });
   }, []);
 
   const clearSort = useCallback(() => {
     setSortState(undefined);
-    setUrlSyncTrigger(prev => prev + 1); // Trigger URL sync
+    setUrlSyncTrigger((prev) => prev + 1); // Trigger URL sync
   }, []);
 
   // Utilities
@@ -442,8 +443,7 @@ export function useFilterPilotInfinite<TData, TFilters = Record<string, any>>(
         if (savedPresets) {
           setPresets(JSON.parse(savedPresets));
         }
-      } catch (error)
-      {
+      } catch (error) {
         console.error('Error loading presets:', error);
       }
     }
