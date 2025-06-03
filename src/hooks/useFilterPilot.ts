@@ -369,21 +369,28 @@ export function useFilterPilot<TData, TFilters = Record<string, any>>(
   // Filter functions with immediate URL sync
   const setFilterValue = useCallback(
     (name: keyof TFilters, value: any) => {
-      // Update UI state immediately
-      const newFilters = {
-        ...filters,
-        [name]: value,
-      } as TFilters;
-
+      const newFilters = { ...filters, [name]: value } as TFilters;
       setFiltersState(newFilters);
 
-      // Sync URL immediately with new filter value
-      syncUrlWithValues(newFilters);
+      const config = filterConfigs.find((c) => c.name === String(name));
 
-      // Trigger debounced API call
-      triggerDebouncedApiCall(String(name), value);
+      if (config?.debounceMs) {
+        if (debounceTimers.current[String(name)]) {
+          clearTimeout(debounceTimers.current[String(name)]);
+        }
+
+        debounceTimers.current[String(name)] = setTimeout(() => {
+          setDebouncedFilters((prev) => ({ ...prev, [name]: value }));
+          syncUrlWithValues({ ...filters, [name]: value } as TFilters);
+
+          // Reset pagination logic...
+        }, config.debounceMs);
+      } else {
+        setDebouncedFilters((prev) => ({ ...prev, [name]: value }));
+        syncUrlWithValues(newFilters);
+      }
     },
-    [filters, syncUrlWithValues, triggerDebouncedApiCall]
+    [filters, syncUrlWithValues, filterConfigs]
   );
 
   const setFilters = useCallback(
