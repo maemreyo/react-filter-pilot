@@ -375,11 +375,11 @@ export function useFilterPilot<TData, TFilters = Record<string, any>>(
 
     if (config?.syncWithUrl !== false) {
       if (config?.debounceMs) {
-        if (debounceTimers.current[`url_${String(name)}`]) {
-          clearTimeout(debounceTimers.current[`url_${String(name)}`]);
+        if (debounceTimers.current[String(name)]) {
+          clearTimeout(debounceTimers.current[String(name)]);
         }
         
-        debounceTimers.current[`url_${String(name)}`] = setTimeout(() => {
+        debounceTimers.current[String(name)] = setTimeout(() => {
           syncUrlWithValues({ ...filters, [name]: value } as TFilters);
         }, config.debounceMs);
       } else {
