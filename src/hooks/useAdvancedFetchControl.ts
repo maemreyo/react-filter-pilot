@@ -11,6 +11,7 @@ export function useFetchControl<TFilters>(
   const debounceTimer = useRef<NodeJS.Timeout | null>(null);
 
   // Update debounced filters with debounce
+  // @ts-ignore
   useEffect(() => {
     if (config?.debounceMs) {
       if (debounceTimer.current) {

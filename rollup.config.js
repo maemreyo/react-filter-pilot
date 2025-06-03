@@ -59,9 +59,11 @@ export default defineConfig([
         format: {
           comments: false,
         },
-        // compress: {
-        //   drop_console: process.env.NODE_ENV === 'production',
-        // },
+        compress: {
+          drop_console: true, // Always remove console logs in production builds
+          drop_debugger: true,
+          pure_funcs: ['console.log', 'console.info', 'console.debug'],
+        },
       }),
     ],
     external: [

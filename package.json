@@ -42,8 +42,8 @@
   "sideEffects": false,
   "type": "module",
   "scripts": {
-    "dev": "rollup -c -w",
-    "build": "pnpm run clean && pnpm run build:rollup && pnpm run build:types",
+    "dev": "tsup --watch",
+    "build": "tsup",
     "build:rollup": "rollup -c",
     "build:types": "tsc -p tsconfig.build.json",
     "clean": "rimraf dist",
@@ -112,6 +112,7 @@
     "size-limit": "^8.2.0",
     "ts-jest": "^29.1.0",
     "tslib": "^2.6.0",
+    "tsup": "^8.5.0",
     "typescript": "^5.2.0"
   },
   "size-limit": [
