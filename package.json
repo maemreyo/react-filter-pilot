@@ -1,6 +1,6 @@
 {
   "name": "@matthew.ngo/react-filter-pilot",
-  "version": "0.1.19",
+  "version": "0.1.20",
   "description": "Powerful filtering, pagination, and sorting for React with TanStack Query integration",
   "author": "Htur Wehttam <matthew.ngo1114@gmail.com>",
   "license": "MIT",
@@ -57,7 +57,9 @@
     "format:check": "prettier --check \"src/**/*.{ts,tsx,js,jsx,json,md}\"",
     "prepare": "husky install",
     "size": "size-limit",
-    "analyze": "size-limit --why"
+    "analyze": "size-limit --why",
+    "analyze:bundle": "pnpm build && npx esbuild-visualizer --metadata dist/metafile-cjs.json --filename dist/bundle-analysis.html && open dist/bundle-analysis.html",
+    "benchmark": "node scripts/benchmark.js"
   },
   "peerDependencies": {
     "@tanstack/react-query": ">=4.0.0",
@@ -77,9 +79,6 @@
     "@mantine/core": "6.0.22",
     "@mantine/dates": "6.0.22",
     "@mantine/hooks": "6.0.22",
-    "@rollup/plugin-commonjs": "^25.0.0",
-    "@rollup/plugin-node-resolve": "^15.0.0",
-    "@rollup/plugin-typescript": "^11.1.0",
     "@size-limit/preset-small-lib": "^8.2.0",
     "@tanstack/react-query": "^5.0.0",
     "@testing-library/jest-dom": "^6.0.0",
@@ -105,10 +104,6 @@
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "rimraf": "^5.0.0",
-    "rollup": "^3.29.0",
-    "rollup-plugin-dts": "^6.0.0",
-    "rollup-plugin-peer-deps-external": "^2.2.4",
-    "rollup-plugin-terser": "^7.0.2",
     "size-limit": "^8.2.0",
     "ts-jest": "^29.1.0",
     "tslib": "^2.6.0",

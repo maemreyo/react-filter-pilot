@@ -5,6 +5,34 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.20] - 2025-01-03
+
+### 🚀 **Major Build System Upgrade**
+
+#### **Changed**
+- **BREAKING**: Migrated from Rollup to tsup for faster, more reliable builds
+- **Build Performance**: 10x faster build times (159ms vs 1000ms+)
+- **Zero Config**: Simplified build configuration with tsup
+- **Console Removal**: Guaranteed console log removal in production builds
+
+#### **Fixed**
+- **Cache Issues**: Eliminated Rollup cache problems that prevented proper rebuilds
+- **Console Logs**: Fixed console logs leaking into production builds
+- **TypeScript**: Improved TypeScript declaration generation
+
+#### **Technical Details**
+- Added `tsup.config.ts` with optimized settings
+- Updated build scripts to use tsup
+- Enhanced minification with esbuild
+- Better tree-shaking and code splitting
+- Improved source map generation
+
+#### **Migration Notes**
+- No API changes - fully backward compatible
+- Faster development builds with `pnpm dev`
+- More reliable production builds
+- Better debugging with improved source maps
+
 ## [Unreleased]
 
 ### Added

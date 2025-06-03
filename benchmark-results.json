@@ -1,0 +1,12 @@
+{
+  "timestamp": "2025-06-03T14:55:32.673Z",
+  "benchmarks": [
+    {
+      "tool": "tsup",
+      "time": 2300,
+      "success": true
+    }
+  ],
+  "nodeVersion": "v20.12.2",
+  "platform": "darwin"
+}

@@ -133,6 +133,43 @@ The package includes comprehensive test utilities:
 - Debounce helpers for async testing
 - Type-safe mock data generators
 
+## Development
+
+### 🚀 **Modern Build System**
+This package uses **tsup** for ultra-fast, zero-config builds:
+
+```bash
+# Development with watch mode
+pnpm dev
+
+# Production build
+pnpm build
+
+# Clean build artifacts
+pnpm clean
+```
+
+### 📊 **Performance & Analysis**
+```bash
+# Bundle size analysis
+pnpm run size
+pnpm run analyze:bundle
+
+# Build performance benchmarks
+pnpm run benchmark
+
+# Test console log removal
+node test-console-removal.js
+```
+
+### 🔧 **Build Features**
+- **⚡ 10x faster builds** with esbuild (159ms vs 1000ms+)
+- **🗑️ Automatic console removal** in production
+- **📦 Dual format output**: ESM + CJS
+- **🎯 Tree-shaking optimized**
+- **🗺️ Source maps** for debugging
+- **📋 TypeScript declarations** auto-generated
+
 ## Contributing
 
 When adding new features:
@@ -141,6 +178,7 @@ When adding new features:
 3. Add tests using test utilities
 4. Update documentation
 5. Add usage examples
+6. Run `pnpm build` to verify build works
 
 ## Version Compatibility
 

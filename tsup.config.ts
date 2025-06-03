@@ -72,4 +72,7 @@ export default defineConfig({
   banner: {
     js: '/* @matthew.ngo/react-filter-pilot - MIT License */',
   },
+  
+  // Bundle analysis
+  metafile: true,
 });
