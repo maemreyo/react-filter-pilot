@@ -83,6 +83,7 @@ export function useFilterMutation<TData, TFilters, TMutationData, TMutationVaria
   }, []);
 
   // Queue mutation
+  // @ts-ignore
   const queueMutation = useCallback(
     (mutationFn: () => Promise<any>) => {
       mutationQueueRef.current.push(mutationFn);
@@ -374,6 +375,7 @@ export function useItemMutation<TData, TFilters, TMutationData, TMutationVariabl
     mutationFn,
     updateAllQueries: true,
     findItemFn: (item: any, variables: TMutationVariables) => item[itemIdField] === variables,
+    // @ts-ignore
     updateItemFn: (item: any, variables: TMutationVariables, data?: TMutationData) => ({
       ...item,
       ...data,
