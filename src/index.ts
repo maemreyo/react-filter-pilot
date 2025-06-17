@@ -1,7 +1,7 @@
 // Main exports
 export { useFilterPilot } from './hooks/useFilterPilot';
 export { useFilterPilotInfinite } from './hooks/useFilterPilotInfinite';
-export { useFilterMutation } from './hooks/useFilterMutation';
+export { useFilterMutation, useItemMutation } from './hooks/useFilterMutation';
 export {
   useFetchControl,
   useRequiredFilters,
